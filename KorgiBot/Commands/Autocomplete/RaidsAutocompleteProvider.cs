@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using DSharpPlus.Entities;
@@ -12,15 +11,8 @@ namespace KorgiBot.Commands.Autocomplete
 	{
 		public override async Task<IEnumerable<DiscordAutoCompleteChoice>> Provider(AutocompleteContext context)
 		{
-			try
-			{
-				return context.Services.GetService<ServiceManager>().GetServerService(context.Guild.Id).RaidsManager.ActiveRaids.Values.Select(value => value.Info)
+			return context.Services.GetService<ServiceManager>().GetServerService(context.Guild.Id).RaidsManager.ActiveRaids.Values.Select(value => value.Info)
 					.Select(raidInfo => new DiscordAutoCompleteChoice($"Thread: {raidInfo.Thread.Name} Id: {raidInfo.Thread.Id}", raidInfo.Thread.Id.ToString()));
-			}
-			catch (Exception e)
-			{
-				Console.WriteLine(e);
-			}
 
 			return null;
 		}

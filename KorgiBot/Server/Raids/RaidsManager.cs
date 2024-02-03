@@ -103,14 +103,7 @@ namespace KorgiBot.Server.Raids
 
 			ActiveRaids.Remove(threadId, out _);
 
-			try
-			{
-				await _bot.DeleteMessageAsync(raidProvider.Info.Messages.First());
-			}
-			catch (Exception e)
-			{
-				Console.WriteLine($"Error while deletion raid message\n{e}");
-			}
+			await _bot.DeleteMessageAsync(raidProvider.Info.Messages.First());
 
 			try
 			{

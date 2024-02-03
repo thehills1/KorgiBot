@@ -92,19 +92,11 @@ namespace KorgiBot
 		private static void CofigurateLogger()
 		{
 			var filePath = Path.Combine(BotEnvironment.LogsDirectoryPath, $"{DateTime.Now.ToString().Replace(":", "-").Replace("/", ".")}.log");
-			File.Create(filePath).Close();
-			try
+			using (var writer = new StreamWriter(new FileStream(filePath, FileMode.OpenOrCreate, FileAccess.Write), leaveOpen: true))
 			{
-				using (var writer = new StreamWriter(new FileStream(filePath, FileMode.OpenOrCreate, FileAccess.Write), leaveOpen: true))
-				{
-					writer.AutoFlush = true;
-					Console.SetOut(writer);
-					Console.SetError(writer);				
-				}
-			}
-			catch (Exception e) 
-			{
-				Console.WriteLine(e);
+				writer.AutoFlush = true;
+				Console.SetOut(writer);
+				Console.SetError(writer);
 			}
 		}
 	}

@@ -26,13 +26,7 @@ namespace KorgiBot.Database
                 if (File.Exists(DatabasePath)) return;
 
                 File.Create(DatabasePath).Close();
-
-                //TableHelper.InitTable<ModeratorTable>(context);
-                //TableHelper.InitTable<DismissedModeratorTable>(context);
-                //TableHelper.InitTable<ModeratorSalaryTable>(context);
-                //TableHelper.InitTable<ShopTable>(context);
-                //TableHelper.InitTable<ShopListMessageTable>(context);
-            }
+			}
             catch (Exception e)
             {
                 Console.WriteLine(e);
