@@ -14,5 +14,9 @@ namespace KorgiBot.Commands
 		Task CheckOnRegistration(InteractionContext context, string threadId);
 
 		Task CheckOnRegAndMove(InteractionContext context, string threadId, bool all = false);
+
+		Task Recover(InteractionContext context);
+
+		Task NotifyRaidStarts(InteractionContext context, string threadId);
     }
 }

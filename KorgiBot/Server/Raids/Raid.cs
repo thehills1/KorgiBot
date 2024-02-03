@@ -1,33 +1,46 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using DSharpPlus.Entities;
 using KorgiBot.Configs;
 using KorgiBot.Extensions;
+using Newtonsoft.Json;
 
 namespace KorgiBot.Server.Raids
 {
 	public class Raid
 	{
+		[JsonProperty("Config")]
 		private readonly RaidsConfig _config;
-		private readonly string _description;
-		private readonly string _startTime;
-		private readonly List<RaidMember> _members;
+
+		[JsonProperty("Roles")]
+		private readonly List<RaidRole> _roles;
+
+		[JsonProperty("FirstRequired")]
 		private readonly int _firstRequired;
 
+		[JsonProperty("CreatorId")]
+		private readonly ulong _creatorId;
+
+		[JsonProperty]
+		public string Description { get; }
+
+		[JsonProperty]
+		public string StartTime { get; }
+
+		[JsonProperty("MembersUpdate")]
 		private object _membersUpdate = new();
 
-		public ulong CreatorId { get; }
+		[JsonIgnore]
+		public List<ulong> RegisteredMembers => _roles.Select(role => role.MemberId).Where(id => id != 0).ToList();
 
-		public Raid(RaidsConfig config, ulong creatorId, string description, string startTime, List<RaidMember> members, int firstRequired = 20)
+		public Raid(RaidsConfig config, ulong creatorId, string description, string startTime, List<RaidRole> roles, int firstRequired = 20)
 		{
-			CreatorId = creatorId;
-
+			_creatorId = creatorId;
 			_config = config;
-			_description = description;
-			_startTime = startTime;
-			_members = members;
+			Description = description;
+			StartTime = startTime;
+			_roles = roles;
 			_firstRequired = firstRequired;
 		}
 
@@ -36,15 +49,16 @@ namespace KorgiBot.Server.Raids
 			lock (_membersUpdate)
 			{
 				if (source == null) return false;
-				if (number > _members.Count) return false;
+				if (!TryGetRole(number, out var role)) return false;
 
-				var hasPerms = (_config.AdminRoles?.Any() ?? true) && source.Roles.Select(role => role.Id).ContainsAny(_config.AdminRoles);
-				if (!hasPerms && number > _firstRequired && _members.Take(_firstRequired).Any(member => member.OwnerId == 0)) return false;
+				var hasPerms = (_config.AdminRoles?.Any() ?? false) && source.Roles.Select(role => role.Id).ContainsAny(_config.AdminRoles);
+				if (!hasPerms && number > _firstRequired && _roles.Take(_firstRequired).Any(member => member.MemberId == 0)) return false;
 
-				var memberToAdd = _members[number - 1];
 				ulong memberId;
 				if (target == null)
 				{
+					if (!hasPerms && role.MemberId != 0) return false;
+
 					memberId = source.Id;
 				}
 				else
@@ -54,7 +68,9 @@ namespace KorgiBot.Server.Raids
 					memberId = target.Id;
 				}
 
-				memberToAdd.OwnerId = memberId;
+				if (role.MemberId == memberId) return false;
+
+				role.MemberId = memberId;
 				RemoveMemberFromOldPlace(number, memberId);
 
 				return true;
@@ -67,27 +83,28 @@ namespace KorgiBot.Server.Raids
 			{
 				if (source == null) return false;
 
-				RaidMember memberToRemove;
+				RaidRole role;
 				if (number == 0)
 				{
-					memberToRemove = _members.FirstOrDefault(member => member.OwnerId == source.Id);
+					TryGetRole(source.Id, out role);
 				}
 				else
 				{
 					if ((_config.AdminRoles?.Any() ?? false) && !source.Roles.Select(role => role.Id).ContainsAny(_config.AdminRoles)) return false;
 
-					memberToRemove = _members[number - 1];
+					TryGetRole(number, out role);
 				}
 
-				if (memberToRemove == null) return false;
+				if (role == null) return false;
+				if (role.MemberId == 0) return false;
 
-				memberToRemove.OwnerId = 0;
+				role.MemberId = 0;
 
 				return true;
 			}
 		}
 
-		public void AddRole(string roleName, ulong userId = 0, int number = 0)
+		public void AddOrUpdateRole(string roleName, ulong userId = 0, int number = 0)
 		{
 			lock (_membersUpdate)
 			{
@@ -96,13 +113,13 @@ namespace KorgiBot.Server.Raids
 				var nextNumber = GetNextRoleNumber();
 				if (number == 0 || number >= nextNumber)
 				{
-					_members.Add(new RaidMember(nextNumber, roleName, userId));
+					_roles.Add(new RaidRole(nextNumber, roleName, userId));
 				}
 				else
 				{
-					var memberToEdit = _members.First(member => member.Number == number);
-					memberToEdit.RoleName = roleName;
-					memberToEdit.OwnerId = userId;
+					TryGetRole(number, out var roleToEdit);
+					roleToEdit.Name = roleName;
+					roleToEdit.MemberId = userId;
 				}
 			}
 		}
@@ -111,10 +128,9 @@ namespace KorgiBot.Server.Raids
 		{
 			lock (_membersUpdate)
 			{
-				var roleToRemove = _members.FirstOrDefault(member => member.Number == number);
-				if (roleToRemove == null) return false;
+				if (!TryGetRole(number, out var roleToRemove)) return false;
 
-				_members.Remove(roleToRemove);
+				_roles.Remove(roleToRemove);
 
 				if (update) UpdateNumbers();
 
@@ -124,30 +140,39 @@ namespace KorgiBot.Server.Raids
 
 		public bool IsRegistered(DiscordMember user)
 		{
-			return _members.Any(member => member.OwnerId == user.Id);
+			return _roles.Any(member => member.MemberId == user.Id);
+		}
+
+		public void UpdateNumbers()
+		{
+			var initialNumber = 1;
+			foreach (var member in _roles)
+			{
+				member.Number = initialNumber++;
+			}
 		}
 
 		public List<string> GetString()
 		{
 			var messages = new List<string>();
-			var messagesCount = _members.Count % 40 == 0 ? _members.Count / 40 : _members.Count / 40 + 1;
+			var messagesCount = _roles.Count % 40 == 0 ? _roles.Count / 40 : _roles.Count / 40 + 1;
 			var sb = new StringBuilder();
 
-			sb.AppendLine($"Собирает {CreatorId.GetMention(DSharpPlus.MentionType.Username)}");
+			sb.AppendLine($"Собирает {_creatorId.GetMention(DSharpPlus.MentionType.Username)}");
 			sb.AppendLine();
 
-			if (_members.Count > _firstRequired)
+			if (_roles.Count > _firstRequired)
 			{
 				sb.AppendLine($"Нельзя записаться на роли выше {_firstRequired}, пока не заполнены первые {_firstRequired} ролей.");
 				sb.AppendLine();
 			}
 
-			sb.AppendLine(_description);
+			sb.AppendLine(Description);
 			sb.AppendLine();
-			sb.AppendLine(_startTime);
+			sb.AppendLine(StartTime);
 			sb.AppendLine();
 
-			var membersToSend = _members.ToList();
+			var membersToSend = _roles.ToList();
 			for (int i = 0; i < messagesCount; i++)
 			{	
 				if (i > 0) sb = new StringBuilder();
@@ -172,31 +197,52 @@ namespace KorgiBot.Server.Raids
 
 		private void RemoveMemberFromOldPlace(int newNumber, ulong id)
 		{
-			for (int i = 1; i <= _members.Count; i++)
+			for (int i = 1; i <= _roles.Count; i++)
 			{
 				if (i == newNumber) continue;
 
-				if (_members[i - 1].OwnerId == id)
+				if (_roles[i - 1].MemberId == id)
 				{
-					_members[i - 1].OwnerId = 0;
+					_roles[i - 1].MemberId = 0;
 				}
 			}
 		}
 
-		public void UpdateNumbers()
+		private bool TryGetRole(ulong memberId, out RaidRole role)
 		{
-			var initialNumber = 1;
-			foreach (var member in _members)
+			role = null;
+
+			foreach (var member in _roles)
 			{
-				member.Number = initialNumber++;
+				if (member.MemberId != memberId) continue;
+
+				role = member;
+				return true;
 			}
+
+			return false;
+		}
+
+		private bool TryGetRole(int number, out RaidRole role)
+		{
+			role = null;
+
+			foreach (var member in _roles)
+			{
+				if (member.Number != number) continue;
+
+				role = member;
+				return true;
+			}
+
+			return false;
 		}
 
 		private int GetNextRoleNumber()
 		{
 			lock (_membersUpdate)
 			{
-				return _members.Last()?.Number + 1 ?? 1;
+				return _roles.Last()?.Number + 1 ?? 1;
 			}
 		}
 	}

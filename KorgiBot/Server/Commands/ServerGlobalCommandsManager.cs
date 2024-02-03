@@ -1,88 +1,67 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
-using KorgiBot.Server.Database;
 using KorgiBot.Server.Raids;
 
 namespace KorgiBot.Server.Commands
 {
 	public class ServerGlobalCommandsManager
     {
+		private readonly RaidsManager _raidsManager;
 		private readonly Bot _bot;
-		private readonly ServerDatabaseManager _databaseManager;
-		private readonly RaidsManager _raidManager;
-		private readonly GuildManager _guildManager;
 
-		public ServerGlobalCommandsManager(Bot bot, ServerDatabaseManager databaseManager, RaidsManager raidManager, GuildManager guildManager) 
+		public ServerGlobalCommandsManager(RaidsManager raidManager, Bot bot) 
         {
+			_raidsManager = raidManager;
 			_bot = bot;
-			_databaseManager = databaseManager;
-			_raidManager = raidManager;
-			_guildManager = guildManager;
 		}
 
-        public bool TryStartRegistration(InteractionContext context, string description, string startTime, string rawMembers, out string message, long firstRequired = 20)
+        public async Task<CommandResult> TryStartRegistration(InteractionContext context, string description, string startTime, string rawMembers, long firstRequired = 20)
         {
-            message = "";
+			await _raidsManager.CreateRaid(context.Member.Id, context.Channel, description, startTime, rawMembers, (int) firstRequired);
 
-			_raidManager.CreateRaid(context.Member.Id, context.Channel, description, startTime, rawMembers, (int) firstRequired);
-
-            message = "Регистрация успешно создана.";
-            return true;
+            return new CommandResult(true, "Регистрация успешно создана.");
         }
 
-		public bool TryRemoveRegistration(InteractionContext context, ulong threadId, out string message)
+		public async Task<CommandResult> TryRemoveRegistration(ulong threadId)
 		{
-			message = "";
-
-			var result = _raidManager.TryRemoveRaid(threadId);
+			var result = await _raidsManager.TryRemoveRaid(threadId);
 			if (result)
 			{
-				message = "Регистрация успешно удалена.";
+				return new CommandResult(result, "Регистрация успешно удалена.");
 			}
 			else
 			{
-				message = "Регистрации с номером такой ветки нет.";
+				return new CommandResult(result, "Регистрации с номером такой ветки нет.");
 			}
-
-			return true;
 		}
 
-		public bool TryEditRegistration(InteractionContext context, ulong threadId, string membersChanges, out string message)
+		public async Task<CommandResult> TryEditRegistration(ulong threadId, string membersChanges)
 		{
-			message = "";
-
-			var result = _raidManager.TryAppendChanges(threadId, membersChanges);
+			var result = await _raidsManager.TryAppendChanges(threadId, membersChanges);
 			if (result)
 			{
-				message = "Изменения успешно внесены.";
+				return new CommandResult(result, "Изменения успешно внесены.");
 			}
 			else
 			{
-				message = "Произошла ошибка во время внесения изменений. Возможно, вы попытались удалить несуществующую роль.";
+				return new CommandResult(result, "Произошла ошибка во время внесения изменений. Возможно, вы попытались удалить несуществующую роль.");
 			}
-
-			return result;
 		}
 
-		public bool TryCheckOnRegistration(InteractionContext context, ulong threadId, out string message)
+		public CommandResult TryCheckOnRegistration(InteractionContext context, ulong threadId)
 		{
-			message = "";
-
 			CheckAllMembersOnRegistration(context, threadId, out var registered, out var notRegistered);
 
-			message = GenerateMembersMessage(registered, notRegistered);
-			return true;
+			return new CommandResult(true, GenerateMembersMessage(registered, notRegistered));
 		}
 
-		public bool TryCheckOnRegAndMove(InteractionContext context, ulong threadId, out string message, bool all = false)
+		public async Task<CommandResult> TryCheckOnRegAndMove(InteractionContext context, ulong threadId, bool all = false)
 		{
-			message = "";
-
 			CheckAllMembersOnRegistration(context, threadId, out var registered, out var notRegistered);
 			
 			var channelToMove = context.Member.VoiceState.Channel;
@@ -90,7 +69,7 @@ namespace KorgiBot.Server.Commands
 			{
 				foreach (var user in pair.Value)
 				{
-					user.PlaceInAsync(channelToMove).Wait();
+					await user.PlaceInAsync(channelToMove);
 				}
 			}
 
@@ -100,13 +79,59 @@ namespace KorgiBot.Server.Commands
 				{
 					foreach (var user in pair.Value)
 					{
-						user.PlaceInAsync(channelToMove).Wait();
+						await user.PlaceInAsync(channelToMove);
 					}
 				}
 			}
 
-			message = GenerateMembersMessage(registered, notRegistered);
-			return true;
+			return new CommandResult(true, GenerateMembersMessage(registered, notRegistered));
+		}
+
+		public async Task<CommandResult> TryRecover()
+		{
+			await _raidsManager.Recover();
+
+			return new CommandResult(true, "Восстановление выполнено успешно.");
+		}
+
+		public async Task<CommandResult> TryNotifyRaidStarts(InteractionContext context, ulong threadId)
+		{
+			var currentVoiceChannel = context.Member.VoiceState?.Channel;
+			if (currentVoiceChannel == null)
+			{
+				return new CommandResult(false, "Для использования этой команды вы должны находиться в голосовом канале.");
+			}
+
+			CheckAllMembersOnRegistration(context, threadId, out var registered, out var notRegistered);
+			var currentRaid = _raidsManager.ActiveRaids[threadId];
+			var membersInVoice = currentVoiceChannel.Users;
+
+			if (!currentRaid.Raid.RegisteredMembers.Any()) return new CommandResult(false, "В данном сборе нет зарегистрированных участников.");
+
+			var messageWasSent = false;
+			foreach (var memberId in currentRaid.Raid.RegisteredMembers)
+			{
+				if (membersInVoice.Any(member => member.Id == memberId)) continue;
+
+				var userToNotify = await _bot.GetMemberAsync(context.Guild.Id, memberId);
+				var message = new StringBuilder();
+				message.AppendLine(userToNotify.Mention);
+				message.AppendLine();
+				message.AppendLine($"Вы записаны на сбор в **{currentRaid.Raid.StartTime}.**");
+				message.AppendLine($"Для принятия участия в нём зайдите в голосовой канал {currentVoiceChannel.Mention}.");
+
+				await _bot.SendDirectMessage(userToNotify, message.ToString());
+				messageWasSent = true;
+			}
+
+			if (messageWasSent)
+			{
+				return new CommandResult(true, "Оповещения успешно отправлены.");
+			}
+			else
+			{
+				return new CommandResult(false, "Все участники сбора итак находятся в вашем голосовом канале.");
+			}
 		}
 
 		public void CheckAllMembersOnRegistration(
@@ -117,13 +142,14 @@ namespace KorgiBot.Server.Commands
 		{
 			registered = new Dictionary<DiscordChannel, List<DiscordMember>>();
 			notRegistered = new Dictionary<DiscordChannel, List<DiscordMember>>();
-			var allChannels = _guildManager.GetAllChannels(context.Guild.Id).Result.Where(channel => channel.Type == ChannelType.Voice);
-			var activeRaid = _raidManager.ActiveRaids.First(raid => raid.Key.Thread.Id == threadId).Value;
+			var allChannels = _bot.GetChannelsAsync(context.Guild.Id, channel => channel.Type == ChannelType.Voice).Result;
+			if (!_raidsManager.ActiveRaids.TryGetValue(threadId, out var raidProvider)) return;
+
 			foreach (var channel in allChannels)
 			{
 				foreach (var user in channel.Users)
 				{
-					if (activeRaid.IsRegistered(user))
+					if (raidProvider.Raid.IsRegistered(user))
 					{
 						if (!registered.TryAdd(channel, new List<DiscordMember>() { user }))
 						{

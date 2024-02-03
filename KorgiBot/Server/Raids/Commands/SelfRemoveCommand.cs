@@ -1,4 +1,5 @@
-﻿using DSharpPlus.Entities;
+﻿using System.Threading.Tasks;
+using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 
 namespace KorgiBot.Server.Raids.Commands
@@ -14,20 +15,19 @@ namespace KorgiBot.Server.Raids.Commands
 			_raidsManager = raidsManager;
 		}
 
-		public bool TryParse(MessageCreateEventArgs args, out CommandContext context)
+		public Task<CommandParseResult> TryParse(MessageCreateEventArgs args)
 		{
-			context = new CommandContext();
-
 			var command = args.Message.Content;
-			if (command != "-") return false;
+			if (command != "-") return Task.FromResult(new CommandParseResult(false, null));
 
+			var context = new CommandContext();
 			context.Sender = args.Author as DiscordMember;
 			context.Thread = args.Channel;
 
-			return true;
+			return Task.FromResult(new CommandParseResult(true, context));
 		}
 
-		public bool TryExecute(CommandContext context)
+		public Task<bool> TryExecute(CommandContext context)
 		{
 			return _raidsManager.TryRemoveMember(context.Thread, context.Sender);
 		}

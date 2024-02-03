@@ -1,5 +1,5 @@
-﻿using System.Linq;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 
@@ -16,21 +16,20 @@ namespace KorgiBot.Server.Raids.Commands
 			_raidsManager = raidsManager;
 		}
 
-		public bool TryParse(MessageCreateEventArgs args, out CommandContext context)
+		public Task<CommandParseResult> TryParse(MessageCreateEventArgs args)
 		{
-			context = new CommandContext();
-
 			var command = args.Message.Content;
-			if (!Regex.IsMatch(command, @"^[0-9]{1,}$")) return false;
+			if (!Regex.IsMatch(command, @"^[0-9]{1,}$")) return Task.FromResult(new CommandParseResult(false, null));
 
+			var context = new CommandContext();
 			context.Sender = args.Author as DiscordMember;
 			context.Thread = args.Channel;
 			context.Arguments = new[] { command };
 
-			return true;
+			return Task.FromResult(new CommandParseResult(true, context));
 		}
 
-		public bool TryExecute(CommandContext context)
+		public Task<bool> TryExecute(CommandContext context)
 		{
 			return _raidsManager.TryAddMember(context.Thread, context.Sender, int.Parse(context.Arguments[0]));
 		}

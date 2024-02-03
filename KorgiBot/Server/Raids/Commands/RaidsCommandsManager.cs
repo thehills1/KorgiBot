@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using KorgiBot.Configs;
@@ -12,16 +13,14 @@ namespace KorgiBot.Server.Raids.Commands
 	{
 		private readonly Bot _bot;
 		private readonly RaidsManager _raidsManager;
-		private readonly GuildManager _guildManager;
 		private readonly RaidsConfig _raidsConfig;
 
 		private readonly List<ICommand> _commands = new();
 
-		public RaidsCommandsManager(Bot bot, RaidsManager raidsManager, GuildManager guildManager, RaidsConfig raidsConfig)
+		public RaidsCommandsManager(Bot bot, RaidsManager raidsManager, RaidsConfig raidsConfig)
 		{
 			_bot = bot;
 			_raidsManager = raidsManager;
-			_guildManager = guildManager;
 			_raidsConfig = raidsConfig;
 		}
 
@@ -38,28 +37,29 @@ namespace KorgiBot.Server.Raids.Commands
 			Console.WriteLine($"Commands {_commands.Count}");
 		}
 
-		public void HandleCommand(MessageCreateEventArgs args)
+		public async Task HandleCommand(MessageCreateEventArgs args)
 		{
 			foreach (var command in _commands)
 			{
-				if (command.TryParse(args, out var context))
+				var parseResult = await command.TryParse(args);
+				if (parseResult.Result)
 				{
-					var result = command.TryExecute(context);
-					SendCommandExecutionResult(args.Message, result);
+					var result = await command.TryExecute(parseResult.Context);
+					await SendCommandExecutionResult(args.Message, result);
 					break;
 				}
 			}
 		}
 
-		private void SendCommandExecutionResult(DiscordMessage message, bool result)
+		private async Task SendCommandExecutionResult(DiscordMessage message, bool result)
 		{
 			if (result)
 			{
-				_guildManager.SetReactionAsync(message, _raidsConfig.PositiveReactionName).Wait();
+				await _bot.SetReactionAsync(message, _raidsConfig.PositiveReactionName);
 			}
 			else
 			{
-				_guildManager.SetReactionAsync(message, _raidsConfig.NegativeReactionName).Wait();
+				await _bot.SetReactionAsync(message, _raidsConfig.NegativeReactionName);
 			}
 		}
 	}

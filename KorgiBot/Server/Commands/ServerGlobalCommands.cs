@@ -20,57 +20,75 @@ namespace KorgiBot.Server.Commands
 		{
 			await context.DeferAsync(true);
 
-			var result = _commandsManager.TryStartRegistration(context, description, startTime, members, out var message, firstRequired);
+			var result = await _commandsManager.TryStartRegistration(context, description, startTime, members, firstRequired);
 
-			SendCommandExecutionResult(context, result, message);
+			await SendCommandExecutionResult(context, result);
 		}
 
 		public async Task RemoveRegistration(InteractionContext context, string threadId)
 		{
 			await context.DeferAsync(true);
 
-			var result = _commandsManager.TryRemoveRegistration(context, ulong.Parse(threadId), out var message);
+			var result = await _commandsManager.TryRemoveRegistration(ulong.Parse(threadId));
 
-			SendCommandExecutionResult(context, result, message);
+			await SendCommandExecutionResult(context, result);
 		}
 
 		public async Task EditRegistration(InteractionContext context, string threadId, string membersChanges)
 		{
 			await context.DeferAsync(true);
 
-			var result = _commandsManager.TryEditRegistration(context, ulong.Parse(threadId), membersChanges, out var message);
+			var result = await _commandsManager.TryEditRegistration(ulong.Parse(threadId), membersChanges);
 
-			SendCommandExecutionResult(context, result, message);
+			await SendCommandExecutionResult(context, result);
 		}
 
 		public async Task CheckOnRegistration(InteractionContext context, string threadId)
 		{
 			await context.DeferAsync(true);
 
-			var result = _commandsManager.TryCheckOnRegistration(context, ulong.Parse(threadId), out var message);
+			var result = _commandsManager.TryCheckOnRegistration(context, ulong.Parse(threadId));
 
-			SendCommandExecutionResult(context, result, message);
+			await SendCommandExecutionResult(context, result);
 		}
 
 		public async Task CheckOnRegAndMove(InteractionContext context, string threadId, bool all = false)
 		{
 			await context.DeferAsync(true);
 
-			var result = _commandsManager.TryCheckOnRegAndMove(context, ulong.Parse(threadId), out var message, all);
+			var result = await _commandsManager.TryCheckOnRegAndMove(context, ulong.Parse(threadId), all);
 
-			SendCommandExecutionResult(context, result, message);
+			await SendCommandExecutionResult(context, result);
 		}
 
-		private async void SendCommandExecutionResult(InteractionContext context, bool result, string message)
+		public async Task Recover(InteractionContext context)
 		{
-			if (result)
+			await context.DeferAsync(true);
+
+			var result = await _commandsManager.TryRecover();
+
+			await SendCommandExecutionResult(context, result);
+		}
+
+		public async Task NotifyRaidStarts(InteractionContext context, string threadId)
+		{
+			await context.DeferAsync(true);
+
+			var result = await _commandsManager.TryNotifyRaidStarts(context, ulong.Parse(threadId));
+
+			await SendCommandExecutionResult(context, result);
+		}
+
+		private async Task SendCommandExecutionResult(InteractionContext context, CommandResult result)
+		{
+			if (result.Success)
 			{
-				await context.EditResponseAsync(new DiscordWebhookBuilder().AddEmbedWithSuccessResult(message));
+				await context.EditResponseAsync(new DiscordWebhookBuilder().AddEmbedWithSuccessResult(result.Message));
 			}
 			else
 			{
-				await context.EditResponseAsync(new DiscordWebhookBuilder().AddEmbedWithErrorResult(message));
+				await context.EditResponseAsync(new DiscordWebhookBuilder().AddEmbedWithErrorResult(result.Message));
 			}
-		}
+		}	
 	}
 }

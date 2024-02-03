@@ -1,5 +1,4 @@
-﻿using System.Threading;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using DSharpPlus.SlashCommands;
 using KorgiBot.Commands.Autocomplete;
 
@@ -53,6 +52,19 @@ namespace KorgiBot.Commands
 			[Option("All", "Перемещать в ваш голосовой канал всех участников из других голосовых каналов.")] bool all = false)
 		{
 			await _serviceManager.GetServerService(context.Guild.Id).ServerGlobalCommands.CheckOnRegAndMove(context, threadId, all);
+		}
+
+		[SlashCommand("recover", "Восстановить список активных сборов.", false)]
+		public async Task Recover(InteractionContext context)
+		{
+			await _serviceManager.GetServerService(context.Guild.Id).ServerGlobalCommands.Recover(context);
+		}
+
+		[SlashCommand("notify", "Предупредить не зашедших в голосовой канал о начале сбора.", false)]
+		public async Task NotifyRaidStarts(InteractionContext context,
+			[Option("ThreadId", "Id ветки.", true)][Autocomplete(typeof(RaidsAutocompleteProvider))] string threadId)
+		{
+			await _serviceManager.GetServerService(context.Guild.Id).ServerGlobalCommands.NotifyRaidStarts(context, threadId);
 		}
 	}
 }

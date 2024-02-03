@@ -14,7 +14,7 @@ namespace KorgiBot.Commands.Autocomplete
 		{
 			try
 			{
-				return context.Services.GetService<ServiceManager>().GetServerService(context.Guild.Id).RaidsManager.ActiveRaids.Keys
+				return context.Services.GetService<ServiceManager>().GetServerService(context.Guild.Id).RaidsManager.ActiveRaids.Values.Select(value => value.Info)
 					.Select(raidInfo => new DiscordAutoCompleteChoice($"Thread: {raidInfo.Thread.Name} Id: {raidInfo.Thread.Id}", raidInfo.Thread.Id.ToString()));
 			}
 			catch (Exception e)

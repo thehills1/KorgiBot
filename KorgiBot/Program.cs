@@ -6,7 +6,6 @@ using KorgiBot.Server;
 using KorgiBot.Server.Commands;
 using KorgiBot.Server.Database;
 using KorgiBot.Server.Raids;
-using KorgiBot.Server.Raids.Commands;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -16,10 +15,9 @@ namespace KorgiBot
     {
         static void Main(string[] args)
         {
-            var serviceCollection = new ServiceCollection();
+			var serviceCollection = new ServiceCollection();
 
             serviceCollection.AddSingleton<ServiceManager>();
-			serviceCollection.AddSingleton<GuildManager>();
 			serviceCollection.AddSingleton<Bot>();
             serviceCollection.AddSingleton(container =>
             {
@@ -44,6 +42,7 @@ namespace KorgiBot
             {
 				container.GetService<ServiceManager>().Initialize();
 
+				CofigurateLogger();
 				Console.ReadKey();
 			}
         }
@@ -60,11 +59,17 @@ namespace KorgiBot
 			serviceCollection.AddScoped<ServerGlobalCommandsManager>();
 
 			serviceCollection.AddScoped<RaidsManager>();
-
+			
 			serviceCollection.AddScoped(container =>
 			{
 				var serverContext = container.GetService<ServerContext>();
 				return RaidsConfig.LoadOrCreate(Path.Combine(serverContext.RootServerPath, "raids_config.json"));
+			});
+
+			serviceCollection.AddScoped(container =>
+			{
+				var serverContext = container.GetService<ServerContext>();
+				return RaidsBackupConfig.LoadOrCreate(Path.Combine(serverContext.RootServerPath, "raids_backup_config.json"));
 			});
 		}
 
@@ -72,7 +77,8 @@ namespace KorgiBot
 		{
 			var directories = new string[]
 			{
-				BotEnvironment.ServersDirectoryPath
+				BotEnvironment.ServersDirectoryPath,
+				BotEnvironment.LogsDirectoryPath,
 			};
 
 			foreach (var directory in directories)
@@ -80,6 +86,25 @@ namespace KorgiBot
 				if (Directory.Exists(directory)) continue;
 
 				Directory.CreateDirectory(directory);
+			}
+		}
+
+		private static void CofigurateLogger()
+		{
+			var filePath = Path.Combine(BotEnvironment.LogsDirectoryPath, $"{DateTime.Now.ToString().Replace(":", "-").Replace("/", ".")}.log");
+			File.Create(filePath).Close();
+			try
+			{
+				using (var writer = new StreamWriter(new FileStream(filePath, FileMode.OpenOrCreate, FileAccess.Write), leaveOpen: true))
+				{
+					writer.AutoFlush = true;
+					Console.SetOut(writer);
+					Console.SetError(writer);				
+				}
+			}
+			catch (Exception e) 
+			{
+				Console.WriteLine(e);
 			}
 		}
 	}

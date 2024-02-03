@@ -1,11 +1,11 @@
-﻿using DSharpPlus.Entities;
+﻿using System.Threading.Tasks;
 using DSharpPlus.EventArgs;
 
 namespace KorgiBot.Server.Raids.Commands
 {
 	public interface ICommand
 	{
-		bool TryParse(MessageCreateEventArgs args, out CommandContext context);
-		bool TryExecute(CommandContext context);
+		Task<CommandParseResult> TryParse(MessageCreateEventArgs args);
+		Task<bool> TryExecute(CommandContext context);
 	}
 }
