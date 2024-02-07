@@ -2,29 +2,34 @@
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Default.Langs;
 using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
+using KorgiBot.Configs;
+using KorgiBot.Langs;
 using KorgiBot.Server.Raids;
 
 namespace KorgiBot.Server.Commands
 {
 	public class ServerGlobalCommandsManager
     {
-		private readonly RaidsManager _raidsManager;
 		private readonly Bot _bot;
+		private readonly RaidsManager _raidsManager;
+		private readonly ServerConfig _serverConfig;
 
-		public ServerGlobalCommandsManager(RaidsManager raidManager, Bot bot) 
+		public ServerGlobalCommandsManager(Bot bot, RaidsManager raidManager, ServerConfig serverConfig) 
         {
-			_raidsManager = raidManager;
 			_bot = bot;
+			_raidsManager = raidManager;
+			_serverConfig = serverConfig;
 		}
 
         public async Task<CommandResult> TryStartRegistration(InteractionContext context, string description, string startTime, string rawMembers, long firstRequired = 20)
         {
 			await _raidsManager.CreateRaid(context.Member.Id, context.Channel, description, startTime, rawMembers, (int) firstRequired);
-
-            return new CommandResult(true, "Регистрация успешно создана.");
+			
+            return new CommandResult(true, TranslationKeys.RaidCreatedSuccessfully.Translate(_serverConfig.ServerLanguage));
         }
 
 		public async Task<CommandResult> TryRemoveRegistration(ulong threadId)
@@ -32,29 +37,33 @@ namespace KorgiBot.Server.Commands
 			var result = await _raidsManager.TryRemoveRaid(threadId);
 			if (result)
 			{
-				return new CommandResult(result, "Регистрация успешно удалена.");
+				return new CommandResult(result, TranslationKeys.RaidDeletedSuccessfully.Translate(_serverConfig.ServerLanguage));
 			}
 			else
 			{
-				return new CommandResult(result, "Регистрации с номером такой ветки нет.");
+				return new CommandResult(result, TranslationKeys.RaidNotFound.Translate(_serverConfig.ServerLanguage));
 			}
 		}
 
 		public async Task<CommandResult> TryEditRegistration(ulong threadId, string membersChanges)
 		{
+			if (!_raidsManager.RaidExists(threadId)) return new CommandResult(false, TranslationKeys.RaidNotFound.Translate(_serverConfig.ServerLanguage));
+
 			var result = await _raidsManager.TryAppendChanges(threadId, membersChanges);
 			if (result)
 			{
-				return new CommandResult(result, "Изменения успешно внесены.");
+				return new CommandResult(result, TranslationKeys.RaidEditedSuccessfully.Translate(_serverConfig.ServerLanguage));
 			}
 			else
 			{
-				return new CommandResult(result, "Произошла ошибка во время внесения изменений. Возможно, вы попытались удалить несуществующую роль.");
+				return new CommandResult(result, TranslationKeys.RaidEditedError.Translate(_serverConfig.ServerLanguage));
 			}
 		}
 
 		public CommandResult TryCheckOnRegistration(InteractionContext context, ulong threadId)
 		{
+			if (!_raidsManager.RaidExists(threadId)) return new CommandResult(false, TranslationKeys.RaidNotFound.Translate(_serverConfig.ServerLanguage));
+
 			CheckAllMembersOnRegistration(context, threadId, out var registered, out var notRegistered);
 
 			return new CommandResult(true, GenerateMembersMessage(registered, notRegistered));
@@ -62,6 +71,8 @@ namespace KorgiBot.Server.Commands
 
 		public async Task<CommandResult> TryCheckOnRegAndMove(InteractionContext context, ulong threadId, bool all = false)
 		{
+			if (!_raidsManager.RaidExists(threadId)) return new CommandResult(false, TranslationKeys.RaidNotFound.Translate(_serverConfig.ServerLanguage));
+
 			CheckAllMembersOnRegistration(context, threadId, out var registered, out var notRegistered);
 			
 			var channelToMove = context.Member.VoiceState.Channel;
@@ -91,22 +102,27 @@ namespace KorgiBot.Server.Commands
 		{
 			await _raidsManager.Recover();
 
-			return new CommandResult(true, "Восстановление выполнено успешно.");
+			return new CommandResult(true, TranslationKeys.RaidsRecoveredSuccessfully.Translate(_serverConfig.ServerLanguage));
 		}
 
 		public async Task<CommandResult> TryNotifyRaidStarts(InteractionContext context, ulong threadId)
 		{
+			if (!_raidsManager.RaidExists(threadId)) return new CommandResult(false, TranslationKeys.RaidNotFound.Translate(_serverConfig.ServerLanguage));
+
 			var currentVoiceChannel = context.Member.VoiceState?.Channel;
 			if (currentVoiceChannel == null)
 			{
-				return new CommandResult(false, "Для использования этой команды вы должны находиться в голосовом канале.");
+				return new CommandResult(false, TranslationKeys.RaidNotifyYouMustBeInVoiceChannel.Translate(_serverConfig.ServerLanguage));
 			}
 
 			CheckAllMembersOnRegistration(context, threadId, out var registered, out var notRegistered);
 			var currentRaid = _raidsManager.ActiveRaids[threadId];
 			var membersInVoice = currentVoiceChannel.Users;
 
-			if (!currentRaid.Raid.RegisteredMembers.Any()) return new CommandResult(false, "В данном сборе нет зарегистрированных участников.");
+			if (!currentRaid.Raid.RegisteredMembers.Any())
+			{
+				return new CommandResult(false, TranslationKeys.RaidNotifyNobodyRegistered.Translate(_serverConfig.ServerLanguage));
+			}
 
 			var messageWasSent = false;
 			foreach (var memberId in currentRaid.Raid.RegisteredMembers)
@@ -117,8 +133,8 @@ namespace KorgiBot.Server.Commands
 				var message = new StringBuilder();
 				message.AppendLine(userToNotify.Mention);
 				message.AppendLine();
-				message.AppendLine($"Вы записаны на сбор в **{currentRaid.Raid.StartTime}.**");
-				message.AppendLine($"Для принятия участия в нём зайдите в голосовой канал {currentVoiceChannel.Mention}.");
+				message.AppendLine(TranslationKeys.RaidNotifyYouJoinedRaid.Translate(_serverConfig.ServerLanguage, currentRaid.Raid.StartTime));
+				message.AppendLine(TranslationKeys.RaidNotifyYouShouldJoinVoiceChannel.Translate(_serverConfig.ServerLanguage, currentVoiceChannel.Mention));
 
 				await _bot.SendDirectMessage(userToNotify, message.ToString());
 				messageWasSent = true;
@@ -126,11 +142,11 @@ namespace KorgiBot.Server.Commands
 
 			if (messageWasSent)
 			{
-				return new CommandResult(true, "Оповещения успешно отправлены.");
+				return new CommandResult(true, TranslationKeys.RaidNotifySentSuccessfully.Translate(_serverConfig.ServerLanguage));
 			}
 			else
 			{
-				return new CommandResult(false, "Все участники сбора итак находятся в вашем голосовом канале.");
+				return new CommandResult(false, TranslationKeys.RaidNotifyAllMembersAlreadyInVoiceChannel.Translate(_serverConfig.ServerLanguage));
 			}
 		}
 
@@ -169,8 +185,9 @@ namespace KorgiBot.Server.Commands
 
 		private string GenerateMembersMessage(Dictionary<DiscordChannel, List<DiscordMember>> registered, Dictionary<DiscordChannel, List<DiscordMember>> notRegistered)
 		{
-			var sb = new StringBuilder("**Список зарегистрированных на сбор участников:");
-			sb.AppendLine();
+			var sb = new StringBuilder();
+
+			sb.AppendLine(TranslationKeys.RaidRegisteredMembersList.Translate(_serverConfig.ServerLanguage));
 			sb.AppendLine();
 			
 			foreach (var pair in registered)
@@ -181,7 +198,8 @@ namespace KorgiBot.Server.Commands
 				sb.AppendLine();
 			}
 
-			sb.AppendLine("**Список незарегистрированных на сбор участников:");
+			sb.AppendLine(TranslationKeys.RaidNotRegisteredMembersList.Translate(_serverConfig.ServerLanguage));
+			sb.AppendLine();
 
 			foreach (var pair in notRegistered)
 			{

@@ -117,6 +117,11 @@ namespace KorgiBot.Server.Raids
 			return true;
 		}
 
+		public bool RaidExists(ulong threadId)
+		{
+			return ActiveRaids.TryGetValue(threadId, out _);
+		}
+
 		public bool TryAddRole(ulong threadId, string roleName, ulong userId, int number = 0)
 		{
 			if (!ActiveRaids.TryGetValue(threadId, out var raidProvider)) return false;

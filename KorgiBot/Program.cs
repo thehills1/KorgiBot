@@ -2,6 +2,7 @@
 using System.IO;
 using DSharpPlus;
 using KorgiBot.Configs;
+using KorgiBot.Langs;
 using KorgiBot.Server;
 using KorgiBot.Server.Commands;
 using KorgiBot.Server.Database;
@@ -42,6 +43,8 @@ namespace KorgiBot
             {
 				container.GetService<ServiceManager>().Initialize();
 
+				LangManager.LoadLangs();
+
 				CofigurateLogger();
 				Console.ReadKey();
 			}
@@ -59,7 +62,13 @@ namespace KorgiBot
 			serviceCollection.AddScoped<ServerGlobalCommandsManager>();
 
 			serviceCollection.AddScoped<RaidsManager>();
-			
+
+			serviceCollection.AddScoped(container =>
+			{
+				var serverContext = container.GetService<ServerContext>();
+				return ServerConfig.LoadOrCreate(Path.Combine(serverContext.RootServerPath, "config.json"));
+			});
+
 			serviceCollection.AddScoped(container =>
 			{
 				var serverContext = container.GetService<ServerContext>();
