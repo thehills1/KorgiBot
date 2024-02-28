@@ -8,6 +8,7 @@ using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using KorgiBot.Configs;
 using KorgiBot.Langs;
+using KorgiBot.Server.Commands.ModalForms;
 using KorgiBot.Server.Raids;
 
 namespace KorgiBot.Server.Commands
@@ -25,9 +26,17 @@ namespace KorgiBot.Server.Commands
 			_serverConfig = serverConfig;
 		}
 
-        public async Task<CommandResult> TryStartRegistration(InteractionContext context, string description, string startTime, string rawMembers, long firstRequired = 20)
+        public async Task<CommandResult> TryStartRegistration(InteractionContext context, IReadOnlyDictionary<string, string> formValues)
         {
-			await _raidsManager.CreateRaid(context.Member.Id, context.Channel, description, startTime, rawMembers, (int) firstRequired);
+			var description = formValues[EditRaidModalForm.RaidDescriptionCustomId];
+			var startTime = formValues[EditRaidModalForm.RaidStartTimeCustomId];
+			var members = formValues[EditRaidModalForm.RaidMembersCustomId];
+			var rawFirstRequired = formValues[EditRaidModalForm.FirstRequiredCustomId];
+
+			var result = CheckFirstRequired(rawFirstRequired, out var firstRequired);
+			if (!result.Success) return result;
+
+			await _raidsManager.CreateRaid(context.Member.Id, context.Channel, description, startTime, members, firstRequired);
 			
             return new CommandResult(true, TranslationKeys.RaidCreatedSuccessfully.Translate(_serverConfig.ServerLanguage));
         }
@@ -119,18 +128,19 @@ namespace KorgiBot.Server.Commands
 			var currentRaid = _raidsManager.ActiveRaids[threadId];
 			var membersInVoice = currentVoiceChannel.Users;
 
-			if (!currentRaid.Raid.RegisteredMembers.Any())
+			if (!currentRaid.Raid.AssignedRoles.Any())
 			{
 				return new CommandResult(false, TranslationKeys.RaidNotifyNobodyRegistered.Translate(_serverConfig.ServerLanguage));
 			}
 
 			var messageWasSent = false;
-			foreach (var memberId in currentRaid.Raid.RegisteredMembers)
+			foreach (var role in currentRaid.Raid.AssignedRoles)
 			{
-				if (membersInVoice.Any(member => member.Id == memberId)) continue;
+				if (membersInVoice.Any(member => member.Id == role.MemberId)) continue;
 
-				var userToNotify = await _bot.GetMemberAsync(context.Guild.Id, memberId);
+				var userToNotify = await _bot.GetMemberAsync(context.Guild.Id, role.MemberId);
 				var message = new StringBuilder();
+
 				message.AppendLine(userToNotify.Mention);
 				message.AppendLine();
 				message.AppendLine(TranslationKeys.RaidNotifyYouJoinedRaid.Translate(_serverConfig.ServerLanguage, currentRaid.Raid.StartTime));
@@ -181,6 +191,21 @@ namespace KorgiBot.Server.Commands
 					}
 				}
 			}
+		}
+
+		private CommandResult CheckFirstRequired(string rawFirstRequired, out int firstRequired)
+		{
+			if (!int.TryParse(rawFirstRequired, out firstRequired))
+			{
+				return new CommandResult(false, TranslationKeys.ParameterMustBeNumberError.Translate(_serverConfig.ServerLanguage, nameof(firstRequired)));
+			}
+
+			if (firstRequired < 0)
+			{
+				return new CommandResult(false, TranslationKeys.ParameterMustBeGreaterOrEqualToZeroError.Translate(_serverConfig.ServerLanguage, nameof(firstRequired)));
+			}
+
+			return new CommandResult(true);
 		}
 
 		private string GenerateMembersMessage(Dictionary<DiscordChannel, List<DiscordMember>> registered, Dictionary<DiscordChannel, List<DiscordMember>> notRegistered)

@@ -6,6 +6,11 @@
 
 		public string Message { get; }
 
+		public CommandResult(bool success) : this(success, "")
+		{
+
+		}
+
 		public CommandResult(bool success, string message)
 		{
 			Success = success;

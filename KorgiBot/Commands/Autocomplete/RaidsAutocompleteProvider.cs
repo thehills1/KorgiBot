@@ -11,10 +11,11 @@ namespace KorgiBot.Commands.Autocomplete
 	{
 		public override async Task<IEnumerable<DiscordAutoCompleteChoice>> Provider(AutocompleteContext context)
 		{
-			return context.Services.GetService<ServiceManager>().GetServerService(context.Guild.Id).RaidsManager.ActiveRaids.Values.Select(value => value.Info)
-					.Select(raidInfo => new DiscordAutoCompleteChoice($"Thread: {raidInfo.Thread.Name} Id: {raidInfo.Thread.Id}", raidInfo.Thread.Id.ToString()));
-
-			return null;
+			return context.Services
+				.GetService<ServiceManager>()
+				.GetServerService(context.Guild.Id).RaidsManager.ActiveRaids.Values
+				.Select(raidProvider => 
+					new DiscordAutoCompleteChoice($"Thread: {raidProvider.Raid.StartTime} Id: {raidProvider.Info.ThreadId}", raidProvider.Info.ThreadId.ToString()));
 		}
 	}
 }

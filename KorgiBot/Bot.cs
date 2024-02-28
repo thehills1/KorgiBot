@@ -7,6 +7,8 @@ using DSharpPlus;
 using DSharpPlus.AsyncEvents;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
+using DSharpPlus.Interactivity.Extensions;
+using DSharpPlus.Interactivity;
 using DSharpPlus.SlashCommands;
 using KorgiBot.Commands;
 using KorgiBot.Extensions;
@@ -30,7 +32,8 @@ namespace KorgiBot
         {
 			if (_isInitialized) return;
 
-            SetupCommandsRegistration();
+			SetupInteractivity();
+			SetupCommandsRegistration();
 			await RunAsync();
 
 			_isInitialized = true;
@@ -291,13 +294,38 @@ namespace KorgiBot
 		}
 		#endregion
 
+		#region Threads
+		public async Task DeleteThreadAsync(ulong threadId)
+		{
+			try
+			{
+				var thread = await _client.GetChannelAsync(threadId);
+				await thread.DeleteAsync();
+			}
+			catch (Exception e)
+			{
+				Console.WriteLine($"Error while deleting thread, [threadId]=[{threadId}]:\n{e}");
+			}
+		}
+		#endregion
+
 		public event AsyncEventHandler<DiscordClient, MessageCreateEventArgs> MessageCreated
 		{
 			add { _client.MessageCreated += value; }
 			remove { _client.MessageCreated -= value; }
 		}
 
-        private void SetupCommandsRegistration()
+		private void SetupInteractivity()
+		{
+			_client.UseInteractivity(new InteractivityConfiguration()
+			{
+				Timeout = TimeSpan.FromMinutes(5)
+			});
+
+			_client.ModalSubmitted += async (s, e) => await e.Interaction.DeferAsync(true);
+		}
+
+		private void SetupCommandsRegistration()
         {
             var cmds = _client.UseSlashCommands(new SlashCommandsConfiguration() { Services = _serviceProvider });
 
