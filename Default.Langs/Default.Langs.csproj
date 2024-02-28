@@ -5,10 +5,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Russian\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\KorgiBot.Langs\KorgiBot.Langs.csproj" />
   </ItemGroup>
 

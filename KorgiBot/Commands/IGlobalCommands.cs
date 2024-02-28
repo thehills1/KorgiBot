@@ -5,7 +5,7 @@ namespace KorgiBot.Commands
 {
     public interface IGlobalCommands
     {
-        Task StartRegistration(InteractionContext context, string description, string startTime, string members, long firstRequired = 20);
+        Task StartRegistration(InteractionContext context);
 
 		Task RemoveRegistration(InteractionContext context, string threadId);
 

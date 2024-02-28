@@ -17,21 +17,9 @@ namespace KorgiBot.Commands
 		[SlashCommand("reg", "Создать сбор.", false)]
 		[DescriptionLocalization(Localization.AmericanEnglish, "Create raid.")]
 		[DescriptionLocalization(Localization.BritishEnglish, "Create raid.")]
-		public async Task StartRegistration(InteractionContext context,
-            [Option("Description", "Описание к сбору, а также упоминаемые роли.")]
-			[DescriptionLocalization(Localization.AmericanEnglish, "Description and mentioned roles/users to raid.")]
-			[DescriptionLocalization(Localization.BritishEnglish, "Description and mentioned roles/users to raid.")] string description,
-			[Option("StartTime", "Время начала сбора. Например: 17:00 UTC.")]
-			[DescriptionLocalization(Localization.AmericanEnglish, "Raid's start time. For example: 17:00 UTC.")]
-			[DescriptionLocalization(Localization.BritishEnglish, "Raid's start time. For example: 17:00 UTC.")] string startTime,
-			[Option("Members", "Список участников сбора (так как одна строчка, пробелы будут заменять символ следующей строки).")]
-			[DescriptionLocalization(Localization.AmericanEnglish, "Raid's member list (space - is a new line symbol, because it's one line).")]
-			[DescriptionLocalization(Localization.BritishEnglish, "Raid's member list (space - is a new line symbol, because it's one line).")] string members,
-			[Option("FirstRequired", "Минимум участников, который должен быть заполнен, чтобы занимать номера выше [firstRequired].")]
-			[DescriptionLocalization(Localization.AmericanEnglish, "Minimum of members, that must be joined to join numbers that are higher than [firstrequired].")]
-			[DescriptionLocalization(Localization.BritishEnglish, "Minimum of members, that must be joined to join numbers that are higher than [firstrequired].")] long firstRequired = 20)
+		public async Task StartRegistration(InteractionContext context)
         {
-			await _serviceManager.GetServerService(context.Guild.Id).ServerGlobalCommands.StartRegistration(context, description, startTime, members, firstRequired);
+			await _serviceManager.GetServerService(context.Guild.Id).ServerGlobalCommands.StartRegistration(context);
         }
 
 		[SlashCommand("del", "Удалить сбор.", false)]

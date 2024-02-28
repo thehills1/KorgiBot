@@ -10,6 +10,7 @@ namespace Default.Langs.AmericanEnglish
 		{
 			this[TranslationKeys.CommandExecutedSuccessfully]				= "Done successfully!";
 			this[TranslationKeys.CommandExecutionError]						= "An error has occurred!";
+			this[TranslationKeys.CommandExecutionUnexpectedError]			= "An unknown error has occurred, please contact the developer.";
 
 			this[TranslationKeys.RaidCreatedSuccessfully]					= "The raid has been successfully created.";
 			this[TranslationKeys.RaidDeletedSuccessfully]					= "Raid has been successfully deleted.";
@@ -29,6 +30,9 @@ namespace Default.Langs.AmericanEnglish
 			this[TranslationKeys.RaidRegisteredMembersList]					= "**List of participants registered for the raid:**";
 			this[TranslationKeys.RaidNotRegisteredMembersList]				= "**List of participants not registered for the raid:**";
 
+			this[TranslationKeys.ParameterMustBeNumberError]				= "Parameter [{0}] must be a number.";
+			this[TranslationKeys.ParameterMustBeGreaterThanZeroError]		= "Parameter [{0}] must be greater than zero.";
+			this[TranslationKeys.ParameterMustBeGreaterOrEqualToZeroError]	= "Parameter [{0}] must be greater than or equal to zero.";
 		}
 	}
 }
