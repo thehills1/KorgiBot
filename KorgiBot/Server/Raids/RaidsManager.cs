@@ -36,9 +36,9 @@ namespace KorgiBot.Server.Raids
 			Task.Run(() => _commandsManager.Initialize());
 		}
 
-		public async Task CreateRaid(ulong creatorId, DiscordChannel channel, string description, string startTime, string rawMembers, int firstRequired = 20)
+		public async Task CreateRaid(ulong creatorId, DiscordChannel channel, string description, string startTime, string rawMembers, int firstRequired)
 		{
-			var members = new List<RaidRole>();
+			var roles = new List<RaidRole>();
 			var number = 1;
 			foreach (Match line in Regex.Matches(rawMembers, @"[0-9]{1,2}\.([a-zA-Zа-яА-Я0-9]|\s){2,}\-(\<\@[0-9]{1,}\>|)"))
 			{
@@ -46,19 +46,20 @@ namespace KorgiBot.Server.Raids
 				var roleName = string.Join("", split[0].Skip(split[0].IndexOf('.') + 1));
 				ulong roleOwnerId = split[1] == string.Empty ? 0 : ulong.Parse(Regex.Match(split[1], @"[0-9]{1,}").Value);
 
-				members.Add(new RaidRole(number++, roleName, roleOwnerId));
+				roles.Add(new RaidRole(number++, roleName, roleOwnerId));
 			}
 
-			var raid = new Raid(_raidsConfig, creatorId, description, startTime, members, firstRequired);
-			var messages = raid.GetString();
+			var raid = new Raid(description, startTime, creatorId, roles, firstRequired, _raidsConfig.AdminRoles);
+			var messages = raid.GetPreparedMessagesToSend();
 			var sentMessages = new List<DiscordMessage>() { await _bot.SendMessageAsync(channel, messages.First()) };
 			var thread = await sentMessages.First().CreateThreadAsync(startTime, AutoArchiveDuration.Day);
+
 			foreach (var message in messages.Skip(1))
 			{
 				sentMessages.Add(await _bot.SendMessageAsync(thread, message));
 			}
 
-			var raidProvider = new RaidProvider(new RaidInfo(channel, thread, sentMessages), raid);
+			var raidProvider = new RaidProvider(new RaidInfo(channel.Id, thread.Id, sentMessages.Select(msg => msg.Id).ToList()), raid);
 			ActiveRaids.TryAdd(thread.Id, raidProvider);
 
 			await OnMembersUpdate(raidProvider);
@@ -103,11 +104,11 @@ namespace KorgiBot.Server.Raids
 
 			ActiveRaids.Remove(threadId, out _);
 
-			await _bot.DeleteMessageAsync(raidProvider.Info.Messages.First());
+			await _bot.DeleteMessageAsync(raidProvider.Info.ChannelId, raidProvider.Info.MessageIds.First());
 
 			try
 			{
-				await raidProvider.Info.Thread.DeleteAsync();
+				await _bot.DeleteThreadAsync(raidProvider.Info.ThreadId);
 			}
 			catch (Exception e)
 			{
@@ -163,12 +164,14 @@ namespace KorgiBot.Server.Raids
 
 			foreach (var pair in _backup.Raids)
 			{
-				var channel = await _bot.GetChannelAsync(pair.Value.RaidInfo.Channel);
-				var thread = await _bot.GetChannelAsync(pair.Value.RaidInfo.Thread);
-				var messagesToBackup = pair.Value.RaidInfo.Messages;
+				var channel = await _bot.GetChannelAsync(pair.Value.Info.ChannelId);
+				var thread = await _bot.GetChannelAsync(pair.Value.Info.ThreadId);
+				var messagesToBackup = pair.Value.Info.MessageIds;
 				var messages = new List<DiscordMessage>() { await _bot.GetMessageAsync(channel, messagesToBackup.First()) };
+
 				messages.AddRange(messagesToBackup.Skip(1).Select(async messageId => await _bot.GetMessageAsync(thread, messageId)).Select(t => t.Result).ToList());
-				ActiveRaids.TryAdd(pair.Key, new RaidProvider(new RaidInfo(channel, thread, messages), pair.Value.Raid));
+
+				ActiveRaids.TryAdd(pair.Key, new RaidProvider(new RaidInfo(channel.Id, thread.Id, messages.Select(msg => msg.Id).ToList()), pair.Value.Raid));
 			}
 		}
 
@@ -181,44 +184,31 @@ namespace KorgiBot.Server.Raids
 
 		private async Task HandleMessageCreated(MessageCreateEventArgs args)
 		{
-			if (!ActiveRaids.TryGetValue(args.Channel.Id, out var raidProvider)) return;
+			if (!ActiveRaids.TryGetValue(args.Channel.Id, out _)) return;
 
 			await _commandsManager.HandleCommand(args);
 		}
 
 		private async Task OnMembersUpdate(RaidProvider raidProvider)
 		{
-			_backup.Raids = new();
-			foreach (var pair in ActiveRaids)
-			{
-				_backup.Raids.TryAdd(
-					pair.Key,
-					new RaidProviderConfig()
-					{
-						RaidInfo = new RaidInfoConfig()
-						{
-							Channel = pair.Value.Info.Channel.Id,
-							Thread = pair.Value.Info.Thread.Id,
-							Messages = pair.Value.Info.Messages.Select(message => message.Id).ToList()
-						},
-						Raid = pair.Value.Raid
-					});
-			}
-
+			_backup.Raids = ActiveRaids;
 			_backup.Save();
 
-			var messagesToUpdate = raidProvider.Raid.GetString();
-			messagesToUpdate[0] = $"Id: {raidProvider.Info.Thread.Id}\n\n{messagesToUpdate[0]}";
-			for (int i = 0; i < raidProvider.Info.Messages.Count; i++)
+			var messagesToUpdate = raidProvider.Raid.GetPreparedMessagesToSend();
+			messagesToUpdate[0] = $"Id: {raidProvider.Info.ThreadId}\n\n{messagesToUpdate[0]}";
+
+			for (int i = 0; i < raidProvider.Info.MessageIds.Count; i++)
 			{
-				await _bot.EditMessageAsync(raidProvider.Info.Messages[i], messagesToUpdate[i]);
+				var channelId = i == 0 ? raidProvider.Info.ChannelId : raidProvider.Info.ThreadId;
+				await _bot.EditMessageAsync(channelId, raidProvider.Info.MessageIds[i], messagesToUpdate[i]);
 			}
 		}
 
 		private void RunDeleteTimer(ulong threadId)
 		{
 			var timer = new Timer();
-			timer.Interval = 2 * 24 * 60 * 60 * 1000;
+
+			timer.Interval = 1000 * 60 * 60 * 24 * 2;
 			timer.AutoReset = false;
 			timer.Elapsed += (_, _) =>
 			{

@@ -1,21 +1,20 @@
 ﻿using System.Collections.Generic;
-using DSharpPlus.Entities;
 
 namespace KorgiBot.Server.Raids
 {
 	public class RaidInfo
 	{
-		public DiscordChannel Channel { get; }
+		public ulong ChannelId { get; }
 
-		public DiscordChannel Thread { get; }
+		public ulong ThreadId { get; }
 
-		public List<DiscordMessage> Messages { get; }
+		public List<ulong> MessageIds { get; }
 
-		public RaidInfo(DiscordChannel channel, DiscordChannel thread, List<DiscordMessage> messages)
+		public RaidInfo(ulong channelId, ulong threadId, List<ulong> messageIds)
 		{
-			Channel = channel;
-			Thread = thread;
-			Messages = messages;
+			ChannelId = channelId;
+			ThreadId = threadId;
+			MessageIds = messageIds;
 		}
 	}
 }
