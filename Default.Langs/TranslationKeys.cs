@@ -27,6 +27,9 @@
 		public const string RaidRegisteredMembersList = "raid.list.registeredmembers";
 		public const string RaidNotRegisteredMembersList = "raid.list.notregisteredmembers";
 
+		public const string RaidInVoiceChannelMembersList = "raid.list.invoice.members";
+		public const string RaidNotInVoiceChannelMembersList = "raid.list.notinvoice.members";
+
 		/// <summary><code> Args = { (string)ParameterName } </code></summary>
 		public const string ParameterMustBeNumberError = "errors.parameter.mustbe.number";
 		/// <summary><code> Args = { (string)ParameterName } </code></summary>

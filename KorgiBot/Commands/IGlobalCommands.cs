@@ -11,9 +11,11 @@ namespace KorgiBot.Commands
 
 		Task EditRegistration(InteractionContext context, string threadId, string membersChanges);
 
-		Task CheckOnRegistration(InteractionContext context, string threadId);
+		Task CheckOnPresence(InteractionContext context, string threadId);
 
-		Task CheckOnRegAndMove(InteractionContext context, string threadId, bool all = false);
+		Task CheckVoicesOnRegistration(InteractionContext context, string threadId);		
+
+		Task CheckVoicesOnRegAndMove(InteractionContext context, string threadId, bool all = false);
 
 		Task Recover(InteractionContext context);
 

@@ -45,7 +45,7 @@ namespace KorgiBot.Server.Commands
 		{
 			await context.DeferAsync(true);
 
-			var result = await _commandsManager.TryRemoveRegistration(ulong.Parse(threadId));
+			var result = await _commandsManager.TryRemoveRegistration(threadId);
 
 			await SendCommandExecutionResult(context, _serverConfig, result);
 		}
@@ -54,25 +54,34 @@ namespace KorgiBot.Server.Commands
 		{
 			await context.DeferAsync(true);
 
-			var result = await _commandsManager.TryEditRegistration(ulong.Parse(threadId), membersChanges);
+			var result = await _commandsManager.TryEditRegistration(threadId, membersChanges);
 
 			await SendCommandExecutionResult(context, _serverConfig, result);
 		}
 
-		public async Task CheckOnRegistration(InteractionContext context, string threadId)
+		public async Task CheckOnPresence(InteractionContext context, string threadId)
 		{
 			await context.DeferAsync(true);
 
-			var result = _commandsManager.TryCheckOnRegistration(context, ulong.Parse(threadId));
+			var result = _commandsManager.TryCheckOnPresence(context, threadId);
 
 			await SendCommandExecutionResult(context, _serverConfig, result);
 		}
 
-		public async Task CheckOnRegAndMove(InteractionContext context, string threadId, bool all = false)
+		public async Task CheckVoicesOnRegistration(InteractionContext context, string threadId)
 		{
 			await context.DeferAsync(true);
 
-			var result = await _commandsManager.TryCheckOnRegAndMove(context, ulong.Parse(threadId), all);
+			var result = _commandsManager.TryCheckVoicesOnRegistration(context, threadId);
+
+			await SendCommandExecutionResult(context, _serverConfig, result);
+		}
+
+		public async Task CheckVoicesOnRegAndMove(InteractionContext context, string threadId, bool all = false)
+		{
+			await context.DeferAsync(true);
+
+			var result = await _commandsManager.TryCheckVoicesOnRegAndMove(context, threadId, all);
 
 			await SendCommandExecutionResult(context, _serverConfig, result);
 		}
@@ -90,7 +99,7 @@ namespace KorgiBot.Server.Commands
 		{
 			await context.DeferAsync(true);
 
-			var result = await _commandsManager.TryNotifyRaidStarts(context, ulong.Parse(threadId));
+			var result = await _commandsManager.TryNotifyRaidStarts(context, threadId);
 
 			await SendCommandExecutionResult(context, _serverConfig, result);
 		}

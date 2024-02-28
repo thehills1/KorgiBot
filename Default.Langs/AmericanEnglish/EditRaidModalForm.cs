@@ -8,8 +8,8 @@ namespace Default.Langs.AmericanEnglish
 	{
 		public EditRaidModalForm()
 		{
-			this[TranslationKeys.EditRaidModalFormCreateTitle] = "Create raid";
-			this[TranslationKeys.EditRaidModalFormEditTitle] = "Edit raid";
+			this[TranslationKeys.EditRaidModalFormCreateTitle] = "Create gathering";
+			this[TranslationKeys.EditRaidModalFormEditTitle] = "Edit gathering";
 			this[TranslationKeys.EditRaidModalFormDescriptionTitle] = "Description";
 			this[TranslationKeys.EditRaidModalFormStartTimeTitle] = "Start time";
 			this[TranslationKeys.EditRaidModalFormMembersTitle] = "Members list";

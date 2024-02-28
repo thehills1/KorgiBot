@@ -47,17 +47,32 @@ namespace KorgiBot.Commands
 			await _serviceManager.GetServerService(context.Guild.Id).ServerGlobalCommands.EditRegistration(context, threadId, membersChanges);
 		}
 
-		[SlashCommand("checkreg", "Проверить участников всех голосовых каналов на регистрацию в сборе.", false)]
-		public async Task CheckOnRegistration(InteractionContext context,
+		[SlashCommand("checkreg", "Проверить всех участников сбора на нахождение в вашем голосовом канале.", false)]
+		[DescriptionLocalization(Localization.AmericanEnglish, "Check that all participants in the raid are in your voice channel.")]
+		[DescriptionLocalization(Localization.BritishEnglish, "Check that all participants in the raid are in your voice channel.")]
+		public async Task CheckOnPresence(InteractionContext context,
 			[Option("ThreadId", "Id ветки.", true)][Autocomplete(typeof(RaidsAutocompleteProvider))]
 			[DescriptionLocalization(Localization.AmericanEnglish, "Thread id.")]
 			[DescriptionLocalization(Localization.BritishEnglish, "Thread id.")] string threadId)
 		{
-			await _serviceManager.GetServerService(context.Guild.Id).ServerGlobalCommands.CheckOnRegistration(context, threadId);
+			await _serviceManager.GetServerService(context.Guild.Id).ServerGlobalCommands.CheckOnPresence(context, threadId);
 		}
 
-		[SlashCommand("movereg", "Проверить всех участников войсов и переместить к вам зарегистрированных.", false)]
-		public async Task CheckOnRegAndMove(InteractionContext context,
+		[SlashCommand("voicecheckreg", "Проверить участников всех голосовых каналов на регистрацию в сборе.", false)]
+		[DescriptionLocalization(Localization.AmericanEnglish, "Check the participants of all voice channels for registration in the raid.")]
+		[DescriptionLocalization(Localization.BritishEnglish, "Check the participants of all voice channels for registration in the raid.")]
+		public async Task CheckVoicesOnRegistration(InteractionContext context,
+			[Option("ThreadId", "Id ветки.", true)][Autocomplete(typeof(RaidsAutocompleteProvider))]
+			[DescriptionLocalization(Localization.AmericanEnglish, "Thread id.")]
+			[DescriptionLocalization(Localization.BritishEnglish, "Thread id.")] string threadId)
+		{
+			await _serviceManager.GetServerService(context.Guild.Id).ServerGlobalCommands.CheckVoicesOnRegistration(context, threadId);
+		}
+
+		[SlashCommand("voicemovereg", "Проверить всех участников войсов и переместить к вам зарегистрированных.", false)]
+		[DescriptionLocalization(Localization.AmericanEnglish, "Check all members of all voice channels and move registered ones to you.")]
+		[DescriptionLocalization(Localization.BritishEnglish, "Check all members of all voice channels and move registered ones to you.")]
+		public async Task CheckVoicesOnRegAndMove(InteractionContext context,
 			[Option("ThreadId", "Id ветки.", true)][Autocomplete(typeof(RaidsAutocompleteProvider))]
 			[DescriptionLocalization(Localization.AmericanEnglish, "Thread id.")]
 			[DescriptionLocalization(Localization.BritishEnglish, "Thread id.")] string threadId,
@@ -65,7 +80,7 @@ namespace KorgiBot.Commands
 			[DescriptionLocalization(Localization.AmericanEnglish, "Move all (include not registered) from another voice channels to your voice channel.")]
 			[DescriptionLocalization(Localization.BritishEnglish, "Move all (include not registered) from another voice channels to your voice channel.")] bool all = false)
 		{
-			await _serviceManager.GetServerService(context.Guild.Id).ServerGlobalCommands.CheckOnRegAndMove(context, threadId, all);
+			await _serviceManager.GetServerService(context.Guild.Id).ServerGlobalCommands.CheckVoicesOnRegAndMove(context, threadId, all);
 		}
 
 		[SlashCommand("recover", "Восстановить список активных сборов.", false)]
