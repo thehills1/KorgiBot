@@ -40,11 +40,11 @@ namespace KorgiBot.Server.Raids
 		{
 			var roles = new List<RaidRole>();
 			var number = 1;
-			foreach (Match line in Regex.Matches(rawMembers, @"[0-9]{1,2}\.([a-zA-Zа-яА-Я0-9]|\s){2,}\-(\<\@[0-9]{1,}\>|)"))
+			foreach (Match line in Regex.Matches(rawMembers, RaidPatterns.Role))
 			{
 				var split = line.Value.Split('-');
 				var roleName = string.Join("", split[0].Skip(split[0].IndexOf('.') + 1));
-				ulong roleOwnerId = split[1] == string.Empty ? 0 : ulong.Parse(Regex.Match(split[1], @"[0-9]{1,}").Value);
+				ulong roleOwnerId = split[1] == string.Empty ? 0 : ulong.Parse(Regex.Match(split[1], RaidPatterns.RoleId).Value);
 
 				roles.Add(new RaidRole(number++, roleName, roleOwnerId));
 			}
@@ -71,8 +71,8 @@ namespace KorgiBot.Server.Raids
 		{
 			if (!ActiveRaids.TryGetValue(threadId, out var raidProvider)) return false;
 
-			var deletes = Regex.Matches(changes, @"\-[0-9]{1,}").Select(match => match.Value);
-			var additions = Regex.Matches(changes, @"[0-9]{1,}\.([A-Za-zА-Яа-я0-9]|\s){2,}\-(\<\@[0-9]{1,}\>|)").Select(match => match.Value);
+			var deletes = Regex.Matches(changes, RaidPatterns.RoleDelete).Select(match => match.Value);
+			var additions = Regex.Matches(changes, RaidPatterns.Role).Select(match => match.Value);
 
 			var result = false;
 			foreach (var delete in deletes)
@@ -86,7 +86,7 @@ namespace KorgiBot.Server.Raids
 				var split = addition.Split('-');
 				var number = int.Parse(string.Join("", split[0].TakeWhile(c => c != '.')));
 				var roleName = string.Join("", split[0].Skip(split[0].IndexOf('.') + 1));
-				ulong roleOwnerId = split[1] == string.Empty ? 0 : ulong.Parse(Regex.Match(split[1], @"[0-9]{1,}").Value);
+				ulong roleOwnerId = split[1] == string.Empty ? 0 : ulong.Parse(Regex.Match(split[1], RaidPatterns.RoleId).Value);
 
 				result = TryAddRole(threadId, roleName, roleOwnerId, number);
 				if (!result) break;
