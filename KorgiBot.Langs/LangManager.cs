@@ -72,7 +72,7 @@ namespace KorgiBot.Langs
 
 				foreach (var loadedLang in loadedLangs)
 				{
-					Console.WriteLine($"Lang {assembly.GetName().Name} -> {loadedLang} successfully loaded.");
+					Console.WriteLine($"Lang {name} -> {loadedLang} successfully loaded.");
 				}
 			}
 			catch (Exception e)

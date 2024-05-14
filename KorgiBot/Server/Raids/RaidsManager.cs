@@ -161,18 +161,39 @@ namespace KorgiBot.Server.Raids
 		public async Task Recover()
 		{
 			ActiveRaids = new();
+			var notActualRaids = new List<ulong>();
 
 			foreach (var pair in _backup.Raids)
 			{
 				var channel = await _bot.GetChannelAsync(pair.Value.Info.ChannelId);
 				var thread = await _bot.GetChannelAsync(pair.Value.Info.ThreadId);
+				if (channel == null || thread == null)
+				{
+					notActualRaids.Add(pair.Key);
+					continue;
+				}
+
 				var messagesToBackup = pair.Value.Info.MessageIds;
 				var messages = new List<DiscordMessage>() { await _bot.GetMessageAsync(channel, messagesToBackup.First()) };
+				if (messages.Any(msg => msg == null))
+				{
+					notActualRaids.Add(pair.Key);
+					continue;
+				}
 
 				messages.AddRange(messagesToBackup.Skip(1).Select(async messageId => await _bot.GetMessageAsync(thread, messageId)).Select(t => t.Result).ToList());
 
 				ActiveRaids.TryAdd(pair.Key, new RaidProvider(new RaidInfo(channel.Id, thread.Id, messages.Select(msg => msg.Id).ToList()), pair.Value.Raid));
+
+				RunDeleteTimer(thread.Id);
 			}
+
+			foreach (var toRemove in notActualRaids)
+			{
+				_backup.Raids.Remove(toRemove, out _);
+			}
+
+			_backup.Save();
 		}
 
 		public async Task UpdateMembers(ulong threadId)
@@ -191,8 +212,7 @@ namespace KorgiBot.Server.Raids
 
 		private async Task OnMembersUpdate(RaidProvider raidProvider)
 		{
-			_backup.Raids = ActiveRaids;
-			_backup.Save();
+			UpdateBackup();
 
 			var messagesToUpdate = raidProvider.Raid.GetPreparedMessagesToSend();
 			messagesToUpdate[0] = $"Id: {raidProvider.Info.ThreadId}\n\n{messagesToUpdate[0]}";
@@ -214,11 +234,18 @@ namespace KorgiBot.Server.Raids
 			{
 				TryRemoveRaid(threadId);
 				_timersToDeleteRaid.Remove(timer);
+				UpdateBackup();
 				timer.Dispose();
 			};
 			timer.Start();
 
 			_timersToDeleteRaid.Add(timer);
+		}
+
+		private void UpdateBackup()
+		{
+			_backup.Raids = ActiveRaids;
+			_backup.Save();
 		}
 	}
 }
