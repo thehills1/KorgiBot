@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using KorgiBot.Commands.Autocomplete;
 
@@ -39,12 +40,9 @@ namespace KorgiBot.Commands
 		public async Task EditRegistration(InteractionContext context,
 			[Option("ThreadId", "Id ветки.", true)][Autocomplete(typeof(RaidsAutocompleteProvider))]
 			[DescriptionLocalization(Localization.AmericanEnglish, "Thread id.")]
-			[DescriptionLocalization(Localization.BritishEnglish, "Thread id.")] string threadId,
-			[Option("Changes", "Изменения в списке участников.")]
-			[DescriptionLocalization(Localization.AmericanEnglish, "Changes in the members list.")]
-			[DescriptionLocalization(Localization.BritishEnglish, "Changes in the members list.")] string membersChanges)
+			[DescriptionLocalization(Localization.BritishEnglish, "Thread id.")] string threadId)
 		{
-			await _serviceManager.GetServerService(context.Guild.Id).ServerGlobalCommands.EditRegistration(context, threadId, membersChanges);
+			await _serviceManager.GetServerService(context.Guild.Id).ServerGlobalCommands.EditRegistration(context, threadId);
 		}
 
 		[SlashCommand("checkreg", "Проверить всех участников сбора на нахождение в вашем голосовом канале.", false)]
@@ -100,6 +98,20 @@ namespace KorgiBot.Commands
 			[DescriptionLocalization(Localization.BritishEnglish, "Thread id.")] string threadId)
 		{
 			await _serviceManager.GetServerService(context.Guild.Id).ServerGlobalCommands.NotifyRaidStarts(context, threadId);
+		}
+
+		[SlashCommand("sendmessagetoall", "Отправить всем участникам с определённой ролью сообщение.", false)]
+		[DescriptionLocalization(Localization.AmericanEnglish, "Send a message to all participants with a specific role.")]
+		[DescriptionLocalization(Localization.BritishEnglish, "Send a message to all participants with a specific role.")]
+		public async Task SendMessageToAll(InteractionContext context,
+			[Option("RecipientsRole", "Роль, владельцы которой получат сообщение", true)]
+			[DescriptionLocalization(Localization.AmericanEnglish, "The role whose owners will receive the message")]
+			[DescriptionLocalization(Localization.BritishEnglish, "The role whose owners will receive the message")] DiscordRole recipientsRole,
+			[Option("Content", "Текст сообщения")]
+			[DescriptionLocalization(Localization.AmericanEnglish, "Message content")]
+			[DescriptionLocalization(Localization.BritishEnglish, "Message content")] string content)
+		{
+			await _serviceManager.GetServerService(context.Guild.Id).ServerGlobalCommands.SendMessageToAll(context, recipientsRole, content);
 		}
 	}
 }

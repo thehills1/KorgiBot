@@ -1,4 +1,5 @@
-﻿using KorgiBot.Server;
+﻿using KorgiBot.Configs;
+using KorgiBot.Server;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Concurrent;
@@ -11,16 +12,24 @@ namespace KorgiBot
 
         private readonly IServiceProvider _serviceProvider;
         private readonly Bot _bot;
+		private readonly BotConfig _botConfig;
 
-        public ServiceManager(IServiceProvider serviceProvider, Bot bot)
+		public ServiceManager(IServiceProvider serviceProvider, Bot bot, BotConfig botConfig)
         {
             _serviceProvider = serviceProvider;
             _bot = bot;
-        }
+			_botConfig = botConfig;
+		}
 
         public void Initialize()
         {
             _bot.Initialize();
+
+			foreach (var serverId in _botConfig.ServersToRecoverRaids)
+			{
+				var serverService = GetServerService(serverId);
+				serverService.RaidsManager.Recover();
+			}
         }
 
         public ServerService GetServerService(ulong serverId)
@@ -36,6 +45,12 @@ namespace KorgiBot
                 var serverService = scope.ServiceProvider.GetService<ServerService>();
                 accessor.SetService(serverService);
                 serverService.Initialize();
+
+				if (!_botConfig.ServersToRecoverRaids.Contains(serverId))
+				{
+					_botConfig.ServersToRecoverRaids.Add(serverId);
+					_botConfig.Save();
+				}
 
                 return serverService;
             });

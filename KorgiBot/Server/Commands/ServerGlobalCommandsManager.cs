@@ -7,6 +7,7 @@ using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using KorgiBot.Configs;
+using KorgiBot.Extensions;
 using KorgiBot.Langs;
 using KorgiBot.Server.Commands.ModalForms;
 using KorgiBot.Server.Raids;
@@ -28,10 +29,10 @@ namespace KorgiBot.Server.Commands
 
         public async Task<CommandResult> TryStartRegistration(InteractionContext context, IReadOnlyDictionary<string, string> formValues)
         {
-			var description = formValues[EditRaidModalForm.RaidDescriptionCustomId];
-			var startTime = formValues[EditRaidModalForm.RaidStartTimeCustomId];
-			var members = formValues[EditRaidModalForm.RaidMembersCustomId];
-			var rawFirstRequired = formValues[EditRaidModalForm.FirstRequiredCustomId];
+			var description = formValues[CreateRaidModalForm.RaidDescriptionCustomId];
+			var startTime = formValues[CreateRaidModalForm.RaidStartTimeCustomId];
+			var members = formValues[CreateRaidModalForm.RaidMembersCustomId];
+			var rawFirstRequired = formValues[CreateRaidModalForm.FirstRequiredCustomId];
 
 			var result = CheckFirstRequired(rawFirstRequired, out var firstRequired);
 			if (!result.Success) return result;
@@ -57,13 +58,14 @@ namespace KorgiBot.Server.Commands
 			}
 		}
 
-		public async Task<CommandResult> TryEditRegistration(string rawThreadId, string membersChanges)
+		public async Task<CommandResult> TryEditRegistration(string rawThreadId, IReadOnlyDictionary<string, string> formValues)
 		{
 			var checkResult = CheckThreadId(rawThreadId, out var threadId);
 			if (!checkResult.Success) return checkResult;
 
 			if (!_raidsManager.RaidExists(threadId)) return new CommandResult(false, TranslationKeys.RaidNotFound.Translate(_serverConfig.ServerLanguage));
 
+			var membersChanges = formValues[EditRaidModalForm.RaidMembersCustomId];
 			var result = await _raidsManager.TryAppendChanges(threadId, membersChanges);
 			if (result)
 			{
@@ -191,6 +193,27 @@ namespace KorgiBot.Server.Commands
 			{
 				return new CommandResult(false, TranslationKeys.RaidNotifyAllMembersAlreadyInVoiceChannel.Translate(_serverConfig.ServerLanguage));
 			}
+		}
+
+		public async Task<CommandResult> TrySendMessageToAll(InteractionContext context, DiscordRole recipientsRole, string content)
+		{
+			if (!context.Member.Roles.Select(role => role.Id).ContainsAny(_serverConfig.AdminRoles))
+			{
+				return new CommandResult(false, TranslationKeys.CommandExecutionNoPerms.Translate(_serverConfig.ServerLanguage));
+			}
+
+			var membersWithRole = context.Guild.Members.Where(member => member.Value.Roles.Any(role => role.Id == recipientsRole.Id)).Select(p => p.Value).ToList();
+			if (membersWithRole.Count == 0)
+			{
+				return new CommandResult(false, TranslationKeys.RaidNobodyWithSelectedRole.Translate(_serverConfig.ServerLanguage, recipientsRole.Mention));
+			}
+
+			foreach (var member in membersWithRole)
+			{
+				await _bot.SendDirectMessage(member, content);
+			}
+
+			return new CommandResult(true, TranslationKeys.RaidMessagesSentSuccessfully.Translate(_serverConfig.ServerLanguage, membersWithRole.Count));
 		}
 
 		private void CheckAllMembersOnPresence(

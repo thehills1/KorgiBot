@@ -1,6 +1,7 @@
 ﻿using System.Threading.Tasks;
 using Default.Langs;
 using DSharpPlus;
+using DSharpPlus.Entities;
 using DSharpPlus.Interactivity.Extensions;
 using DSharpPlus.SlashCommands;
 using KorgiBot.Commands;
@@ -23,12 +24,12 @@ namespace KorgiBot.Server.Commands
 
 		public async Task StartRegistration(InteractionContext context)
 		{
-			var modalFormInfo = EditRaidModalForm.Create(
-				TranslationKeys.EditRaidModalFormCreateTitle.Translate(_serverConfig.ServerLanguage),
-				TranslationKeys.EditRaidModalFormDescriptionTitle.Translate(_serverConfig.ServerLanguage),
-				TranslationKeys.EditRaidModalFormStartTimeTitle.Translate(_serverConfig.ServerLanguage),
-				TranslationKeys.EditRaidModalFormMembersTitle.Translate(_serverConfig.ServerLanguage),
-				TranslationKeys.EditRaidModalFormFirstRequiredTitle.Translate(_serverConfig.ServerLanguage));
+			var modalFormInfo = CreateRaidModalForm.Create(
+														TranslationKeys.CreateRaidModalFormTitle.Translate(_serverConfig.ServerLanguage),
+														TranslationKeys.CreateRaidModalFormDescriptionTitle.Translate(_serverConfig.ServerLanguage),
+														TranslationKeys.CreateRaidModalFormStartTimeTitle.Translate(_serverConfig.ServerLanguage),
+														TranslationKeys.CreateRaidModalFormMembersTitle.Translate(_serverConfig.ServerLanguage),
+														TranslationKeys.CreateRaidModalFormFirstRequiredTitle.Translate(_serverConfig.ServerLanguage));
 
 			await context.Interaction.CreateResponseAsync(InteractionResponseType.Modal, modalFormInfo.Form);
 
@@ -50,13 +51,21 @@ namespace KorgiBot.Server.Commands
 			await SendCommandExecutionResult(context, _serverConfig, result);
 		}
 
-		public async Task EditRegistration(InteractionContext context, string threadId, string membersChanges)
+		public async Task EditRegistration(InteractionContext context, string threadId)
 		{
-			await context.DeferAsync(true);
+			var modalFormInfo = EditRaidModalForm.Create(
+													TranslationKeys.EditRaidModalFormEditTitle.Translate(_serverConfig.ServerLanguage),
+													TranslationKeys.EditRaidModalFormMembersTitle.Translate(_serverConfig.ServerLanguage));
 
-			var result = await _commandsManager.TryEditRegistration(threadId, membersChanges);
+			await context.Interaction.CreateResponseAsync(InteractionResponseType.Modal, modalFormInfo.Form);
 
-			await SendCommandExecutionResult(context, _serverConfig, result);
+			var response = await context.Client.GetInteractivity().WaitForModalAsync(modalFormInfo.CustomId);
+
+			if (response.Result == null) return;
+
+			var result = await _commandsManager.TryEditRegistration(threadId, response.Result.Values);
+
+			await SendCommandExecutionResult(response.Result.Interaction, _serverConfig, result);
 		}
 
 		public async Task CheckOnPresence(InteractionContext context, string threadId)
@@ -100,6 +109,15 @@ namespace KorgiBot.Server.Commands
 			await context.DeferAsync(true);
 
 			var result = await _commandsManager.TryNotifyRaidStarts(context, threadId);
+
+			await SendCommandExecutionResult(context, _serverConfig, result);
+		}
+
+		public async Task SendMessageToAll(InteractionContext context, DiscordRole recipientsRole, string content)
+		{
+			await context.DeferAsync(true);
+
+			var result = await _commandsManager.TrySendMessageToAll(context, recipientsRole, content);
 
 			await SendCommandExecutionResult(context, _serverConfig, result);
 		}

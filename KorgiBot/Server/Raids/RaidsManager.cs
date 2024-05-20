@@ -222,6 +222,28 @@ namespace KorgiBot.Server.Raids
 				var channelId = i == 0 ? raidProvider.Info.ChannelId : raidProvider.Info.ThreadId;
 				await _bot.EditMessageAsync(channelId, raidProvider.Info.MessageIds[i], messagesToUpdate[i]);
 			}
+
+			if (messagesToUpdate.Count == raidProvider.Info.MessageIds.Count) return;
+
+			if (messagesToUpdate.Count > raidProvider.Info.MessageIds.Count)
+			{
+				for (int i = raidProvider.Info.MessageIds.Count; i < messagesToUpdate.Count; i++)
+				{
+					var message = await _bot.SendMessageAsync(raidProvider.Info.ThreadId, messagesToUpdate[i]);
+					raidProvider.Info.MessageIds.Add(message.Id);
+				}
+			}
+			else
+			{
+				var messagesToDeleteCount = raidProvider.Info.MessageIds.Count - messagesToUpdate.Count;
+				var messagesToDeleteIds = raidProvider.Info.MessageIds.GetRange(raidProvider.Info.MessageIds.Count - messagesToDeleteCount, messagesToDeleteCount);
+				foreach (var messageId in messagesToDeleteIds)
+				{
+					await _bot.DeleteMessageAsync(raidProvider.Info.ThreadId, messageId);
+				}
+			}
+
+			UpdateBackup();
 		}
 
 		private void RunDeleteTimer(ulong threadId)

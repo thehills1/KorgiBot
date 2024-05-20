@@ -6,6 +6,7 @@
 		public const string CommandExecutedSuccessfully = "command.executed.success";
 		public const string CommandExecutionError = "command.execution.error";
 		public const string CommandExecutionUnexpectedError = "command.execution.unexpectederror";
+		public const string CommandExecutionNoPerms = "command.execution.noperms";
 
 		public const string RaidCreatedSuccessfully = "raid.create.success";
 		public const string RaidDeletedSuccessfully = "raid.delete.success";
@@ -30,6 +31,11 @@
 		public const string RaidInVoiceChannelMembersList = "raid.list.invoice.members";
 		public const string RaidNotInVoiceChannelMembersList = "raid.list.notinvoice.members";
 
+		/// <summary><code> Args = { (string)RoleMention } </code></summary>
+		public const string RaidNobodyWithSelectedRole = "raid.nobodywith.selectedrole";
+		/// <summary><code> Args = { (int)SentMessagesCount } </code></summary>
+		public const string RaidMessagesSentSuccessfully = "raid.messages.sent.successfully";
+
 		/// <summary><code> Args = { (string)ParameterName } </code></summary>
 		public const string ParameterMustBeNumberError = "errors.parameter.mustbe.number";
 		/// <summary><code> Args = { (string)ParameterName } </code></summary>
@@ -37,12 +43,15 @@
 		/// <summary><code> Args = { (string)ParameterName } </code></summary>
 		public const string ParameterMustBeGreaterOrEqualToZeroError = "errors.parameter.mustbe.greaterorequal.tozero";
 
-		/// EditRaidModalForm
-		public const string EditRaidModalFormCreateTitle = "modalform.editraid.create.title";
-		public const string EditRaidModalFormEditTitle = "modalform.editraid.edit.title";
-		public const string EditRaidModalFormDescriptionTitle = "modalform.editraid.decription.title";
-		public const string EditRaidModalFormStartTimeTitle = "modalform.editraid.starttime.title";
+		/// CreateRaidModalForm
+		public const string CreateRaidModalFormTitle = "modalform.createraid.title";
+		public const string CreateRaidModalFormDescriptionTitle = "modalform.createraid.decription.title";
+		public const string CreateRaidModalFormStartTimeTitle = "modalform.createraid.starttime.title";
+		public const string CreateRaidModalFormMembersTitle = "modalform.createraid.members.title";
+		public const string CreateRaidModalFormFirstRequiredTitle = "modalform.createraid.firstrequired.title";
+
+		// EditRaidModalForm
+		public const string EditRaidModalFormEditTitle = "modalform.editraid.title";
 		public const string EditRaidModalFormMembersTitle = "modalform.editraid.members.title";
-		public const string EditRaidModalFormFirstRequiredTitle = "modalform.editraid.firstrequired.title";
 	}
 }

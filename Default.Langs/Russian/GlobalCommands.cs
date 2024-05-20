@@ -11,6 +11,7 @@ namespace Default.Langs.Russian
 			this[TranslationKeys.CommandExecutedSuccessfully]				= "Выполнено успешно!";
 			this[TranslationKeys.CommandExecutionError]						= "Произошла ошибка!";
 			this[TranslationKeys.CommandExecutionUnexpectedError]			= "Произошла неизвестная ошибка, сообщите разработчику.";
+			this[TranslationKeys.CommandExecutionNoPerms]					= "У вас нет прав для выполнения данной команды.";
 
 			this[TranslationKeys.RaidCreatedSuccessfully]					= "Сбор успешно создан.";
 			this[TranslationKeys.RaidDeletedSuccessfully]					= "Сбор успешно удален.";
@@ -36,6 +37,9 @@ namespace Default.Langs.Russian
 			this[TranslationKeys.ParameterMustBeNumberError]				= "Параметр [{0}] должен быть числом.";
 			this[TranslationKeys.ParameterMustBeGreaterThanZeroError]		= "Параметр [{0}] должен быть больше нуля.";
 			this[TranslationKeys.ParameterMustBeGreaterOrEqualToZeroError]	= "Параметр [{0}] должен быть больше или равен нулю.";
+
+			this[TranslationKeys.RaidNobodyWithSelectedRole]				= "На сервере нет участников с ролью {0}.";
+			this[TranslationKeys.RaidMessagesSentSuccessfully]				= "Сообщения успешно отправлены {0} участникам.";
 		}
 	}
 }

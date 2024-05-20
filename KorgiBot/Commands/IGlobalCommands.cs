@@ -1,4 +1,5 @@
-﻿using DSharpPlus.SlashCommands;
+﻿using DSharpPlus.Entities;
+using DSharpPlus.SlashCommands;
 using System.Threading.Tasks;
 
 namespace KorgiBot.Commands
@@ -9,7 +10,7 @@ namespace KorgiBot.Commands
 
 		Task RemoveRegistration(InteractionContext context, string threadId);
 
-		Task EditRegistration(InteractionContext context, string threadId, string membersChanges);
+		Task EditRegistration(InteractionContext context, string threadId);
 
 		Task CheckOnPresence(InteractionContext context, string threadId);
 
@@ -20,5 +21,7 @@ namespace KorgiBot.Commands
 		Task Recover(InteractionContext context);
 
 		Task NotifyRaidStarts(InteractionContext context, string threadId);
+
+		Task SendMessageToAll(InteractionContext context, DiscordRole recipientsRole, string content);
     }
 }

@@ -11,6 +11,7 @@ namespace Default.Langs.AmericanEnglish
 			this[TranslationKeys.CommandExecutedSuccessfully]				= "Done successfully!";
 			this[TranslationKeys.CommandExecutionError]						= "An error has occurred!";
 			this[TranslationKeys.CommandExecutionUnexpectedError]			= "An unknown error has occurred, please contact the developer.";
+			this[TranslationKeys.CommandExecutionNoPerms]					= "You do not have permission to run this command.";
 
 			this[TranslationKeys.RaidCreatedSuccessfully]					= "The gathering has been successfully created.";
 			this[TranslationKeys.RaidDeletedSuccessfully]					= "Gathering has been successfully deleted.";
@@ -36,6 +37,9 @@ namespace Default.Langs.AmericanEnglish
 			this[TranslationKeys.ParameterMustBeNumberError]				= "Parameter [{0}] must be a number.";
 			this[TranslationKeys.ParameterMustBeGreaterThanZeroError]		= "Parameter [{0}] must be greater than zero.";
 			this[TranslationKeys.ParameterMustBeGreaterOrEqualToZeroError]	= "Parameter [{0}] must be greater than or equal to zero.";
+
+			this[TranslationKeys.RaidNobodyWithSelectedRole]				= "There are no members with the role {0} on the server.";
+			this[TranslationKeys.RaidMessagesSentSuccessfully]				= "Messages successfully sent to {0} members.";
 		}
 	}
 }

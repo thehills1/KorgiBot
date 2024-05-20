@@ -8,12 +8,8 @@ namespace Default.Langs.Russian
 	{
 		public EditRaidModalForm()
 		{
-			this[TranslationKeys.EditRaidModalFormCreateTitle] = "Создание сбора";
 			this[TranslationKeys.EditRaidModalFormEditTitle] = "Редактирование сбора";
-			this[TranslationKeys.EditRaidModalFormDescriptionTitle] = "Описание";
-			this[TranslationKeys.EditRaidModalFormStartTimeTitle] = "Время начала";
-			this[TranslationKeys.EditRaidModalFormMembersTitle] = "Список участников";
-			this[TranslationKeys.EditRaidModalFormFirstRequiredTitle] = "Минимум заполненных мест";
+			this[TranslationKeys.EditRaidModalFormMembersTitle] = "Изменения в списке участников";
 		}
 	}
 }
