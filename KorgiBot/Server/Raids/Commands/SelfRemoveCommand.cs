@@ -29,7 +29,7 @@ namespace KorgiBot.Server.Raids.Commands
 
 		public Task<bool> TryExecute(CommandContext context)
 		{
-			return _raidsManager.TryRemoveMember(context.Thread, context.Sender);
+			return _raidsManager.TryRemoveMemberAsync(context.Thread, context.Sender);
 		}
 	}
 }

@@ -1,23 +1,37 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net7.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Chloe.SQLite" Version="5.18.0" />
     <PackageReference Include="DSharpPlus" Version="4.4.6" />
     <PackageReference Include="DSharpPlus.CommandsNext" Version="4.4.6" />
     <PackageReference Include="DSharpPlus.Interactivity" Version="4.4.6" />
     <PackageReference Include="DSharpPlus.SlashCommands" Version="4.4.6" />
     <PackageReference Include="DSharpPlus.VoiceNext" Version="4.4.6" />
-    <PackageReference Include="System.Data.SQLite" Version="1.0.118" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.0" />
+    <PackageReference Include="EFCore.NamingConventions" Version="9.0.0" />
+
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Default.Langs\Default.Langs.csproj" />
+    <ProjectReference Include="..\KorgiBot.Database\KorgiBot.Database.csproj" />
+    <ProjectReference Include="..\KorgiBot.Database.Migrations\KorgiBot.Database.Migrations.csproj" />  
     <ProjectReference Include="..\KorgiBot.Langs\KorgiBot.Langs.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="bot_config.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
