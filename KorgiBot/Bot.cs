@@ -4,11 +4,10 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using DSharpPlus;
-using DSharpPlus.AsyncEvents;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
-using DSharpPlus.Interactivity.Extensions;
 using DSharpPlus.Interactivity;
+using DSharpPlus.Interactivity.Extensions;
 using DSharpPlus.SlashCommands;
 using KorgiBot.Commands;
 using KorgiBot.Extensions;
@@ -21,12 +20,14 @@ namespace KorgiBot
 
         private readonly DiscordClient _client;
         private readonly IServiceProvider _serviceProvider;
+		private readonly ServiceManager _serviceManager;
 
-        public Bot(DiscordClient client, IServiceProvider serviceProvider)
+		public Bot(DiscordClient client, IServiceProvider serviceProvider, ServiceManager serviceManager)
         {
             _client = client;
             _serviceProvider = serviceProvider;
-        }
+			_serviceManager = serviceManager;
+		}
 
         public async void Initialize()
         {
@@ -34,6 +35,7 @@ namespace KorgiBot
 
 			SetupInteractivity();
 			SetupCommandsRegistration();
+			SetupEventHandlers();
 			await RunAsync();
 
 			_isInitialized = true;
@@ -309,12 +311,6 @@ namespace KorgiBot
 		}
 		#endregion
 
-		public event AsyncEventHandler<DiscordClient, MessageCreateEventArgs> MessageCreated
-		{
-			add { _client.MessageCreated += value; }
-			remove { _client.MessageCreated -= value; }
-		}
-
 		private void SetupInteractivity()
 		{
 			_client.UseInteractivity(new InteractivityConfiguration()
@@ -333,19 +329,37 @@ namespace KorgiBot
             _client.GuildCreated += async (s, e) => await RegisterCommandsAndUpdate(cmds, e.Guild.Id);
         }
 
-        private async Task RegisterCommandsAndUpdate(SlashCommandsExtension cmds, ulong guildId)
+		private void SetupEventHandlers()
+		{
+			_client.MessageCreated += async (source, args) => await HandleMessageCreatedAsync(args);
+		}
+
+		private async Task RegisterCommandsAndUpdate(SlashCommandsExtension cmds, ulong guildId)
         {
             cmds.RegisterCommands<GlobalCommands>(guildId);
             await cmds.RefreshCommands();
         }
 
-        private async Task RunAsync()
+		private async Task RunAsync()
         {
             await _client.ConnectAsync();
             await Task.Delay(-1);
         }
 
-        public void Dispose()
+		private async Task HandleMessageCreatedAsync(MessageCreateEventArgs args)
+		{
+			if (args.Guild == null) return;
+
+			var serverService = _serviceManager.GetServerService(args.Guild.Id);
+			if (!await serverService.RaidsManager.CheckRaidExistsAsync(args.Channel.Id))
+			{
+				return;
+			}
+
+			await serverService.RaidCommandsManager.HandleCommandAsync(args);
+		}
+
+		public void Dispose()
         {
             _client.Dispose();
         }

@@ -2,84 +2,90 @@
 using System.IO;
 using DSharpPlus;
 using KorgiBot.Configs;
+using KorgiBot.Database;
 using KorgiBot.Langs;
 using KorgiBot.Server;
 using KorgiBot.Server.Commands;
-using KorgiBot.Server.Database;
 using KorgiBot.Server.Raids;
+using KorgiBot.Server.Raids.Commands;
+using KorgiBot.Utils.Syncs;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace KorgiBot
 {
-	internal class Program
+	public class Program
     {
         static void Main(string[] args)
         {
 			var serviceCollection = new ServiceCollection();
 
-            serviceCollection.AddSingleton<ServiceManager>();
-			serviceCollection.AddSingleton<Bot>();
-            serviceCollection.AddSingleton(container =>
-            {
-                var config = serviceCollection.BuildServiceProvider().GetService<BotConfig>();
-
-                return new DiscordClient(new DiscordConfiguration
-                {
-                    Token = config.Token,
-                    TokenType = TokenType.Bot,
-                    AutoReconnect = true,
-                    MinimumLogLevel = LogLevel.Debug,
-                    Intents = DiscordIntents.All
-                });
-            });
-
-            serviceCollection.AddSingleton(container => BotConfig.LoadOrCreate("config.json"));
-
-			InitializeServerServiceScope(serviceCollection);
+			SetupContainer(serviceCollection);
 			InitializeBotEnvironmentDirectories();
 
 			using (var container = serviceCollection.BuildServiceProvider())
             {
-				container.GetService<ServiceManager>().Initialize();
+				OnBeforeRun(container);
 
 				LangManager.LoadLangs();
-
 				CofigurateLogger();
+
 				Console.ReadKey();
 			}
         }
 
-		private static void InitializeServerServiceScope(IServiceCollection serviceCollection)
+		private static void SetupContainer(IServiceCollection container)
 		{
-			serviceCollection.AddScoped<ServerContext>();
-			serviceCollection.AddScoped<IServerServiceAccessor, ServerServiceAccessor>();
-			serviceCollection.AddScoped<ServerService>();
-			serviceCollection.AddScoped<ServerDatabaseConnector>();
-			serviceCollection.AddScoped<ServerDatabaseManager>();
+			container.AddSingleton<ServiceManager>();
+			container.AddSingleton<Bot>();
+			container.AddSingleton(c =>
+			{
+				var config = c.GetRequiredService<BotConfig>();
+				return new DiscordClient(new DiscordConfiguration
+				{
+					Token = config.Token,
+					TokenType = TokenType.Bot,
+					AutoReconnect = true,
+					MinimumLogLevel = LogLevel.Debug,
+					Intents = DiscordIntents.All
+				});
+			});
 
-			serviceCollection.AddScoped<ServerGlobalCommands>();
-			serviceCollection.AddScoped<ServerGlobalCommandsManager>();
+			container.AddSingleton<ISyncManager, SyncManager>();
+			container.AddSingleton<TasksSchedule>();
 
-			serviceCollection.AddScoped<RaidsManager>();
+			container.AddScoped<ServerContext>();
+			container.AddScoped<IServerServiceAccessor, ServerServiceAccessor>();
+			container.AddScoped<ServerService>();
 
-			serviceCollection.AddScoped(container =>
+			container.AddScoped<ServerGlobalCommands>();
+			container.AddScoped<ServerGlobalCommandsManager>();
+
+			container.AddScoped<RaidsManager>();
+			container.AddScoped<RaidCommandsManager>();
+
+			container.AddSingleton(_ => BotConfig.LoadOrCreate(BotConfig.ConfigPath));
+			container.AddScoped(container =>
 			{
 				var serverContext = container.GetService<ServerContext>();
 				return ServerConfig.LoadOrCreate(Path.Combine(serverContext.RootServerPath, "config.json"));
 			});
 
-			serviceCollection.AddScoped(container =>
+			container.AddScoped(container =>
 			{
 				var serverContext = container.GetService<ServerContext>();
 				return RaidsConfig.LoadOrCreate(Path.Combine(serverContext.RootServerPath, "raids_config.json"));
 			});
 
-			serviceCollection.AddScoped(container =>
+			container.AddDbContextPool<DatabaseContext>((container, options) =>
 			{
-				var serverContext = container.GetService<ServerContext>();
-				return RaidsBackupConfig.LoadOrCreate(Path.Combine(serverContext.RootServerPath, "raids_backup_config.json"));
-			});
+				var botConfig = container.GetRequiredService<BotConfig>();
+				options.UseNpgsql(
+					botConfig.DatabaseConnectionString,
+					assembly => assembly.MigrationsAssembly("KorgiBot.Database.Migrations"))
+				.UseSnakeCaseNamingConvention();
+			}, 20);
 		}
 
 		private static void InitializeBotEnvironmentDirectories()
@@ -107,6 +113,21 @@ namespace KorgiBot
 				Console.SetOut(writer);
 				Console.SetError(writer);
 			}
+		}
+
+		private static void OnBeforeRun(IServiceProvider container)
+		{
+			using (var scope = container.CreateScope())
+			{
+				var databaseContext = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
+				databaseContext.Database.Migrate();
+			}
+
+			var tasksSchedule = container.GetRequiredService<TasksSchedule>();
+			tasksSchedule.Initialize();
+
+			var bot = container.GetRequiredService<Bot>();
+			bot.Initialize();
 		}
 	}
 }

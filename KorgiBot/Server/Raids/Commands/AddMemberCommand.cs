@@ -33,14 +33,14 @@ namespace KorgiBot.Server.Raids.Commands
 			context.Sender = args.Author as DiscordMember;
 			context.Target = target;
 			context.Thread = args.Channel;
-			context.Arguments = new[] { number };
+			context.Arguments = [number];
 
 			return new CommandParseResult(true, context);
 		}
 
 		public Task<bool> TryExecute(CommandContext context)
 		{
-			return _raidsManager.TryAddMember(context.Thread, context.Sender, int.Parse(context.Arguments[0]), context.Target);
+			return _raidsManager.TryAddMemberAsync(context.Thread, context.Sender, int.Parse(context.Arguments[0]), context.Target);
 		}
 	}
 }

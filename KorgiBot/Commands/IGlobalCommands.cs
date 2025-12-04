@@ -18,8 +18,6 @@ namespace KorgiBot.Commands
 
 		Task CheckVoicesOnRegAndMove(InteractionContext context, string threadId, bool all = false);
 
-		Task Recover(InteractionContext context);
-
 		Task NotifyRaidStarts(InteractionContext context, string threadId);
 
 		Task SendMessageToAll(InteractionContext context, DiscordRole recipientsRole, string content);

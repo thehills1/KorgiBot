@@ -72,7 +72,7 @@ namespace KorgiBot.Server.Commands
 		{
 			await context.DeferAsync(true);
 
-			var result = _commandsManager.TryCheckOnPresence(context, threadId);
+			var result = await _commandsManager.TryCheckOnPresenceAsync(context, threadId);
 
 			await SendCommandExecutionResult(context, _serverConfig, result);
 		}
@@ -81,7 +81,7 @@ namespace KorgiBot.Server.Commands
 		{
 			await context.DeferAsync(true);
 
-			var result = _commandsManager.TryCheckVoicesOnRegistration(context, threadId);
+			var result = await _commandsManager.TryCheckVoicesOnRegistrationAsync(context, threadId);
 
 			await SendCommandExecutionResult(context, _serverConfig, result);
 		}
@@ -95,20 +95,11 @@ namespace KorgiBot.Server.Commands
 			await SendCommandExecutionResult(context, _serverConfig, result);
 		}
 
-		public async Task Recover(InteractionContext context)
-		{
-			await context.DeferAsync(true);
-
-			var result = await _commandsManager.TryRecover();
-
-			await SendCommandExecutionResult(context, _serverConfig, result);
-		}
-
 		public async Task NotifyRaidStarts(InteractionContext context, string threadId)
 		{
 			await context.DeferAsync(true);
 
-			var result = await _commandsManager.TryNotifyRaidStarts(context, threadId);
+			var result = await _commandsManager.TryNotifyRaidStartsAsync(context, threadId);
 
 			await SendCommandExecutionResult(context, _serverConfig, result);
 		}
